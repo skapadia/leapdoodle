@@ -3,25 +3,42 @@
 <head>
     <title>ETE Doodle</title>
 
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
 
     <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="js/jquery-ui-1.10.2.js"></script>
+
     <script type="text/javascript">
+
+        window.URL = window.URL || window.webkitURL;
+        navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
+                navigator.mozGetUserMedia || navigator.msGetUserMedia;
+
         $(document).ready(function () {
+
+            $('#photoSnapshotDialog').dialog({
+                title: "Smile!",
+                resizable: false,
+                modal: true,
+                minWidth: 1050,
+                minHeight: 794,
+                buttons: {
+                    "Take photo": function () {
+                        $(this).dialog('close');
+                    }
+                }
+            });
+
             var video = $('#videoCapture')[0];
 
             function onVideoCaptureError(error) {
                 console.log("Video capture error: " + error.code);
             }
+
             if (navigator.getUserMedia) {
                 navigator.getUserMedia({video: true}, function (stream) {
-                    video.src = stream;
+                    video.src = window.URL.createObjectURL(stream);
                     video.play();
-                }, onVideoCaptureError);
-            }
-            else if (navigator.webkitGetUserMedia) {
-                navigator.webkitGetUserMedia({video: true}, function (stream) {
-                   video.src = window.webkitURL.createObjectURL(stream);
-                   video.play();
                 }, onVideoCaptureError);
             }
         });
@@ -30,8 +47,13 @@
 <body>
 
 <div id="doodleApp" style="width: 100%; height: 100%">
-    <!--<canvas id="doodleCanvas" style="width: 1024px; height: 768px; border: solid 1px;"></canvas>-->
+    <canvas id="doodleCanvas" style="width: 1024px; height: 768px; border: solid 1px;"></canvas>
+
+</div>
+
+<div id="photoSnapshotDialog" style="width:1050px; height:794px;display:none;">
     <video id="videoCapture" width="1024" height="768" autoplay></video>
 </div>
+
 </body>
 </html>

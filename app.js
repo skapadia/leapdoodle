@@ -11,6 +11,10 @@ app.configure(function() {
     app.use(express.methodOverride());
     app.use(express.static(path.join(__dirname, 'public')));
     app.engine('html', engines.underscore);
+    app.use(function (err, req, res, next) {
+        console.error(err.stack);
+        res.send(500, "Internal server error.  Have a good day!");
+    });
 });
 
 app.get('/eteDoodle', function (req, res) {
