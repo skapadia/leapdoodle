@@ -21,6 +21,7 @@ app.configure(function() {
     app.use(express.logger());
     app.use(express.bodyParser());
     app.use(express.methodOverride());
+    app.use(express.compress());
     app.use(express.static(path.join(__dirname, 'public')));
     app.engine('html', engines.underscore);
     app.use(function (err, req, res, next) {
