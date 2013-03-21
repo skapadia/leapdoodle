@@ -3,6 +3,17 @@ var engines = require('consolidate');
 var path = require('path');
 var fs = require('fs');
 var app = express();
+var currImageIndex = 0;
+var userHomeDir = process.env['HOME'];
+var snapshotImageDir = path.join(userHomeDir, 'snapshotImages');
+
+if (!fs.existsSync(snapshotImageDir)) {
+    fs.mkdirSync(snapshotImageDir);
+}
+
+console.log("User home dir = " + userHomeDir);
+console.log("Snapshot image dir = " + snapshotImageDir);
+
 
 
 app.configure(function() {
@@ -28,7 +39,8 @@ app.post('/eteDoodle/saveSnapshot', function (req, res) {
     var imageData = imageDataUrl.substring(indexOfComma + 1);
     console.log("URL Part = " + imageDataUrl.substring(0, indexOfComma));
     var decodedImage = new Buffer(imageData, 'base64').toString('binary');
-    fs.writeFile('snapshot.png', decodedImage, 'binary', function(err) {});
+    fs.writeFile(path.join(snapshotImageDir, 'snapshot_' + currImageIndex + '.png'), decodedImage, 'binary', function(err) {});
+    currImageIndex++;
 });
 
 app.listen(3000);
