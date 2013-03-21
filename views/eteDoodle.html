@@ -17,6 +17,8 @@
         var takeSnapshotFromVideo = function (video, canvas, canvasContext) {
             canvasContext.drawImage(video, 0, 0, video.width, video.height);
             var imageData = canvas.toDataURL('image/png');
+
+            // TODO: This call will be moved to when the user clicks "Save" after doodling on image
             $.post('/eteDoodle/saveSnapshot', {imageData: imageData});
         };
 
