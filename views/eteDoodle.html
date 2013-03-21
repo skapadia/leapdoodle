@@ -14,14 +14,19 @@
         navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
                 navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
-        var takeSnapshotFromVideo = function (video, canvasContext) {
+        var takeSnapshotFromVideo = function (video, canvas, canvasContext) {
             canvasContext.drawImage(video, 0, 0, video.width, video.height);
+            var imageData = canvas.toDataURL('image/png');
+            $.post('/eteDoodle/saveSnapshot', {imageData: imageData});
         };
 
 
         $(document).ready(function () {
             var video = $('#videoCapture')[0];
+            var canvas = $('#doodleCanvas')[0];
             var canvasCtx = $('#doodleCanvas')[0].getContext('2d');
+
+            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
             $('#photoSnapshotDialog').dialog({
                 resizable: false,
@@ -30,7 +35,7 @@
                 minHeight: 794,
                 buttons: {
                     "Take photo": function () {
-                        takeSnapshotFromVideo(video, canvasCtx);
+                        takeSnapshotFromVideo(video, canvas, canvasCtx);
                         $(this).dialog('close');
                     }
                 }
