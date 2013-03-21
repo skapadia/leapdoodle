@@ -39,8 +39,14 @@ app.post('/eteDoodle/saveSnapshot', function (req, res) {
     var imageData = imageDataUrl.substring(indexOfComma + 1);
     console.log("URL Part = " + imageDataUrl.substring(0, indexOfComma));
     var decodedImage = new Buffer(imageData, 'base64').toString('binary');
-    fs.writeFile(path.join(snapshotImageDir, 'snapshot_' + currImageIndex + '.png'), decodedImage, 'binary', function(err) {});
-    currImageIndex++;
+    fs.writeFile(path.join(snapshotImageDir, 'snapshot_' + currImageIndex + '.png'), decodedImage, 'binary', function(err) {
+        if (err) {
+            console.error("Error saving image " + error.message);
+            throw err;
+        }
+        currImageIndex++;
+        res.send(200);
+    });
 });
 
 app.listen(3000);
