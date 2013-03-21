@@ -42,7 +42,7 @@ app.post('/eteDoodle/saveSnapshot', function (req, res) {
     var decodedImage = new Buffer(imageData, 'base64').toString('binary');
     fs.writeFile(path.join(snapshotImageDir, 'snapshot_' + currImageIndex + '.png'), decodedImage, 'binary', function(err) {
         if (err) {
-            console.error("Error saving image " + error.message);
+            console.error("Error saving image " + err.message);
             throw err;
         }
         currImageIndex++;
