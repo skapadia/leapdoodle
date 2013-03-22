@@ -15,17 +15,21 @@
         navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
                 navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
+        var uploadCanvasImage = function (canvas) {
+            // Base64 encoded string of the image data
+            var imageDataBase64 = canvas.toDataURL('image/png');
+
+            // TODO: This call will be moved to when the user clicks "Save" after doodling on image
+            $.post('/eteDoodle/saveSnapshot', {imageData: imageDataBase64});
+        };
+
         var takeSnapshotFromVideo = function (video, stream, canvas, canvasContext) {
             canvasContext.drawImage(video, 0, 0, video.width, video.height);
 
+            // Stop the webcam
             video.pause();
             video.src = '';
             stream.stop();
-
-            var imageData = canvas.toDataURL('image/png');
-
-            // TODO: This call will be moved to when the user clicks "Save" after doodling on image
-            $.post('/eteDoodle/saveSnapshot', {imageData: imageData});
         };
 
         var startWebcamVideo = function (video, webStreamCallback) {
@@ -57,7 +61,7 @@
             var canvasOffset = $canvas.offset();
             var canvasOffsetLeft = canvasOffset.left;
             var canvasOffsetTop = canvasOffset.top;
-
+            var currentColor = 'rgb(0, 0, 0, 0)';
 
 
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
@@ -65,7 +69,8 @@
             // TODO: We will take LeapMotion Input, use elementFromPoint and trigger click on the element
             // TODO: We could make things faster and directly do hit testing ourselves since its only several elements
             $(document).delegate('.paintColor', 'click', function (event) {
-               console.log("Clicked color = " + $(this).css('background-color'));
+                currentColor = $(this).css('background-color');
+                console.log("Clicked color = " + currentColor);
             });
 
             var mouseDown = false;
@@ -86,6 +91,7 @@
             $canvas.mousedown(function (event) {
                 console.log("Mouse down in canvas");
                 mouseDown = true;
+                canvasCtx.strokeStyle = currentColor;
                 canvasCtx.beginPath();
                 canvasCtx.moveTo((event.pageX - canvasOffsetLeft), (event.pageY - canvasOffsetTop));
             });
