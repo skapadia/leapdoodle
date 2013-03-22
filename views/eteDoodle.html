@@ -28,12 +28,37 @@
             $.post('/eteDoodle/saveSnapshot', {imageData: imageData});
         };
 
+        var startWebcamVideo = function (video, webStreamCallback) {
+
+            var onVideoCaptureError =  function (error) {
+                console.log("Video capture error: " + error.code);
+                webStreamCallback(null);
+            }
+
+            if (navigator.getUserMedia) {
+                navigator.getUserMedia({video: true}, function (stream) {
+                    video.src = window.URL.createObjectURL(stream);
+                    video.play();
+
+                    if (webStreamCallback) {
+                        webStreamCallback(stream);
+                    }
+                }, onVideoCaptureError);
+            }
+        };
 
         $(document).ready(function () {
-            var video = $('#videoCapture')[0];
-            var canvas = $('#doodleCanvas')[0];
-            var canvasCtx = $('#doodleCanvas')[0].getContext('2d');
+            var $video = $('#videoCapture');
+            var video = $video[0];
+            var $canvas = $('#doodleCanvas')
+            var canvas = $canvas[0];
+            var canvasCtx = canvas.getContext('2d');
             var webCamStream = null;
+            var canvasOffset = $canvas.offset();
+            var canvasOffsetLeft = canvasOffset.left;
+            var canvasOffsetTop = canvasOffset.top;
+
+
 
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -41,6 +66,50 @@
             // TODO: We could make things faster and directly do hit testing ourselves since its only several elements
             $(document).delegate('.paintColor', 'click', function (event) {
                console.log("Clicked color = " + $(this).css('background-color'));
+            });
+
+            var mouseDown = false;
+
+            $canvas.mouseenter(function (event) {
+               console.log("Entered canvas");
+            });
+
+            $canvas.mouseleave(function (event) {
+               console.log("Left canvas");
+               // If mouseDown is still true, call stroke
+               if (mouseDown) {
+                   canvasCtx.stroke();
+                   mouseDown = false;
+               }
+            });
+
+            $canvas.mousedown(function (event) {
+                console.log("Mouse down in canvas");
+                mouseDown = true;
+                canvasCtx.beginPath();
+                canvasCtx.moveTo((event.pageX - canvasOffsetLeft), (event.pageY - canvasOffsetTop));
+            });
+
+            $canvas.mouseup(function (event) {
+                console.log("Mouse up in canvas");
+                mouseDown = false;
+                canvasCtx.stroke();
+            });
+
+            $canvas.mousemove(function (event) {
+                if (mouseDown) {
+                    console.log("Mouse down and moving in canvas");
+
+                    // Draw a line to this point
+                    var canvasX = (event.pageX - canvasOffsetLeft);
+                    var canvasY = (event.pageY - canvasOffsetTop);
+                    canvasCtx.lineTo(canvasX, canvasY);
+                    canvasCtx.stroke();
+
+                    // Now start a new path from this point
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(canvasX, canvasY);
+                }
             });
 
             $('#photoSnapshotDialog').dialog({
@@ -55,17 +124,10 @@
                     }
                 }
             });
-            function onVideoCaptureError(error) {
-                console.log("Video capture error: " + error.code);
-            }
 
-            if (navigator.getUserMedia) {
-                navigator.getUserMedia({video: true}, function (stream) {
-                    webCamStream = stream;
-                    video.src = window.URL.createObjectURL(webCamStream);
-                    video.play();
-                }, onVideoCaptureError);
-            }
+            startWebcamVideo(video, function (stream) {
+                webCamStream = stream;
+            });
         });
     </script>
 </head>
