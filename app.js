@@ -19,11 +19,13 @@ else {
         console.log("Number of files = " + files.length);
         var maxIndex = -1;
         for (var i = 0; i < files.length; i++) {
-            var underscoreIndex = files[i].lastIndexOf('_');
-            var dotIndex = files[i].lastIndexOf('.');
-            var fileNum = parseInt(files[i].substring(underscoreIndex + 1, dotIndex));
-            if (fileNum > maxIndex) {
-                maxIndex = fileNum;
+            if (files[i].indexOf('snapshot_') == 0) {
+                var underscoreIndex = files[i].lastIndexOf('_');
+                var dotIndex = files[i].lastIndexOf('.');
+                var fileNum = parseInt(files[i].substring(underscoreIndex + 1, dotIndex));
+                if (fileNum > maxIndex) {
+                    maxIndex = fileNum;
+                }
             }
         }
         currImageIndex = maxIndex + 1;
