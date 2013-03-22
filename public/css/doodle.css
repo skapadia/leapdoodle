@@ -21,24 +21,29 @@
     width:111px;
     height:111px;
     border-radius: 10px;
+    border: solid 3px;
+}
+
+.paintColor:hover {
+    border-color:black;
 }
 
 .backgroundRed {
     background-color: red;
+    border-color:red;
 }
 
 .backgroundGreen {
     background-color: green;
+    border-color:green;
 }
 
 .backgroundBlue {
     background-color: blue;
+    border-color:blue;
 }
 
 .backgroundYellow {
     background-color: yellow;
-}
-
-.paintColor:hover {
-    border: solid 2px;
+    border-color:yellow;
 }
