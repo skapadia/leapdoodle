@@ -57,6 +57,8 @@ app.get('/eteDoodle', function (req, res) {
    res.render('eteDoodle.html');
 });
 
+// TODO: Serve images for the slideshow web page
+
 app.post('/eteDoodle/saveSnapshot', function (req, res) {
     var imageDataUrl = req.body.imageData;
     var indexOfComma = imageDataUrl.indexOf(',');

@@ -124,15 +124,21 @@
                 minWidth: 1050,
                 minHeight: 794,
                 buttons: {
-                    "Take photo": function () {
-                        takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
-                        $(this).dialog('close');
+                    "takeSnapshotButton": {
+                        text: "Take photo",
+                        id: "takeSnapshotButton",
+                        click: function () {
+                            takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
+                            $(this).dialog('close');
+                        }
                     }
                 }
             });
 
+            $('#takeSnapshotButton').attr('disabled', 'disabled');
             startWebcamVideo(video, function (stream) {
                 webCamStream = stream;
+                $('#takeSnapshotButton').removeAttr('disabled');
             });
         });
     </script>
@@ -147,6 +153,10 @@
             <li class="paintColor backgroundGreen"></li>
             <li class="paintColor backgroundBlue"></li>
             <li class="paintColor backgroundYellow"></li>
+        </ul>
+        <ul class="actionButtonList" style="text-align: left;">
+            <li><button type="button" class="actionButton">START OVER</button></li>
+            <li><button type="button" class="actionButton">SAVE IT!!</button></li>
         </ul>
     </div>
 </div>

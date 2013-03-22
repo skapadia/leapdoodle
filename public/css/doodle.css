@@ -8,7 +8,22 @@
     float:right;
 }
 
-.paintColorList {
+button.actionButton {
+    font-family: Roboto, sans-serif;
+    /*font-weight: bold;*/
+    font-size: 32pt;
+    background-color: rgba(116,116,116,0.17);
+    border-radius:10px;
+}
+
+ul.actionButtonList {
+    list-style-type:none;
+    margin-left:10px;
+    padding-left:0px;
+    text-indent:0;
+}
+
+ul.paintColorList {
     list-style-type:none;
     margin-left:10px;
     padding-left:0px;
