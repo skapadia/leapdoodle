@@ -4,6 +4,7 @@
     <title>ETE Doodle</title>
 
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css"/>
+    <link rel="stylesheet" href="css/doodle.css"/>
 
     <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
     <script type="text/javascript" src="js/jquery-ui-1.10.2.js"></script>
@@ -36,6 +37,12 @@
 
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // TODO: We will take LeapMotion Input, use elementFromPoint and trigger click on the element
+            // TODO: We could make things faster and directly do hit testing ourselves since its only several elements
+            $(document).delegate('.paintColor', 'click', function (event) {
+               console.log("Clicked color = " + $(this).css('background-color'));
+            });
+
             $('#photoSnapshotDialog').dialog({
                 resizable: false,
                 modal: true,
@@ -48,7 +55,6 @@
                     }
                 }
             });
-
             function onVideoCaptureError(error) {
                 console.log("Video capture error: " + error.code);
             }
@@ -67,7 +73,14 @@
 
 <div id="doodleApp" style="width: 100%; height: 100%">
     <canvas id="doodleCanvas" width="1024" height="768" style="border: solid 2px;"></canvas>
-    <div id="toolPane" style="width:375px;height:768px;border: solid 2px;float:right;"></div>
+    <div id="toolPane" class="toolPane">
+        <ul class="paintColorList">
+            <li class="paintColor backgroundRed"></li>
+            <li class="paintColor backgroundGreen"></li>
+            <li class="paintColor backgroundBlue"></li>
+            <li class="paintColor backgroundYellow"></li>
+        </ul>
+    </div>
 </div>
 
 <div id="photoSnapshotDialog" title="Smile!" style="width:1050px; height:794px;display:none;">

@@ -1,0 +1,44 @@
+.toolPane {
+    width:375px;
+    height:768px;
+    border: solid 2px;
+    border-radius:10px;
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.7);
+    background-color: rgba(116,116,116,0.17);
+    float:right;
+}
+
+.paintColorList {
+    list-style-type:none;
+    margin-left:10px;
+    padding-left:0px;
+    text-indent:0;
+    width:335px;
+}
+
+.paintColor {
+    margin-bottom:10px;
+    width:111px;
+    height:111px;
+    border-radius: 10px;
+}
+
+.backgroundRed {
+    background-color: red;
+}
+
+.backgroundGreen {
+    background-color: green;
+}
+
+.backgroundBlue {
+    background-color: blue;
+}
+
+.backgroundYellow {
+    background-color: yellow;
+}
+
+.paintColor:hover {
+    border: solid 2px;
+}
