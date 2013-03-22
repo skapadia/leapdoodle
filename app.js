@@ -3,12 +3,33 @@ var engines = require('consolidate');
 var path = require('path');
 var fs = require('fs');
 var app = express();
-var currImageIndex = 0;
 var userHomeDir = process.env['HOME'];
 var snapshotImageDir = path.join(userHomeDir, 'snapshotImages');
 
+var currImageIndex = 0;
 if (!fs.existsSync(snapshotImageDir)) {
+    console.log(snapshotImageDir + " does not exist");
     fs.mkdirSync(snapshotImageDir);
+}
+else {
+    console.log(snapshotImageDir + " exists");
+    // Determine greatest index and add 1
+    var files = fs.readdirSync(snapshotImageDir);
+    if (files && files.length > 0) {
+        console.log("Number of files = " + files.length);
+        var maxIndex = -1;
+        for (var i = 0; i < files.length; i++) {
+            var underscoreIndex = files[i].lastIndexOf('_');
+            var dotIndex = files[i].lastIndexOf('.');
+            var fileNum = parseInt(files[i].substring(underscoreIndex + 1, dotIndex));
+            if (fileNum > maxIndex) {
+                maxIndex = fileNum;
+            }
+        }
+        currImageIndex = maxIndex + 1;
+        console.log("Next snapshot index = " + currImageIndex);
+    }
+
 }
 
 console.log("User home dir = " + userHomeDir);
