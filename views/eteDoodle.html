@@ -20,16 +20,21 @@
             var imageDataBase64 = canvas.toDataURL('image/png');
 
             // TODO: This call will be moved to when the user clicks "Save" after doodling on image
-            $.post('/eteDoodle/saveSnapshot', {imageData: imageDataBase64});
+            $.post('/eteDoodle/saveSnapshot', {imageData: imageDataBase64}, function (data) {
+                console.log("Image uploaded successfully.");
+            });
         };
 
         var takeSnapshotFromVideo = function (video, stream, canvas, canvasContext) {
             canvasContext.drawImage(video, 0, 0, video.width, video.height);
+            var imageData = canvasContext.getImageData(0, 0, video.width, video.height);
 
             // Stop the webcam
             video.pause();
             video.src = '';
             stream.stop();
+
+            return imageData;
         };
 
         var startWebcamVideo = function (video, webStreamCallback) {
@@ -58,10 +63,12 @@
             var canvas = $canvas[0];
             var canvasCtx = canvas.getContext('2d');
             var webCamStream = null;
+            var origSnapshotImageData = null;
             var canvasOffset = $canvas.offset();
             var canvasOffsetLeft = canvasOffset.left;
             var canvasOffsetTop = canvasOffset.top;
             var currentColor = 'rgb(0, 0, 0, 0)';
+            var mouseDown = false;
 
 
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
@@ -73,7 +80,15 @@
                 console.log("Clicked color = " + currentColor);
             });
 
-            var mouseDown = false;
+            $('#resetImageButton').bind('click', function (event) {
+                if (origSnapshotImageData) {
+                    canvasCtx.putImageData(origSnapshotImageData, 0, 0);
+                }
+            });
+
+            $('#saveImageButton').bind('click', function (event) {
+                uploadCanvasImage(canvas);
+            });
 
             $canvas.mouseenter(function (event) {
                console.log("Entered canvas");
@@ -128,7 +143,7 @@
                         text: "Take photo",
                         id: "takeSnapshotButton",
                         click: function () {
-                            takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
+                            origSnapshotImageData = takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
                             $(this).dialog('close');
                         }
                     }
@@ -155,8 +170,8 @@
             <li class="paintColor backgroundYellow"></li>
         </ul>
         <ul class="actionButtonList" style="text-align: left;">
-            <li><button type="button" class="actionButton">START OVER</button></li>
-            <li><button type="button" class="actionButton">SAVE IT!!</button></li>
+            <li><button id="resetImageButton" type="button" class="actionButton">START OVER</button></li>
+            <li><button id="saveImageButton" type="button" class="actionButton">SAVE IT!!</button></li>
         </ul>
     </div>
 </div>
