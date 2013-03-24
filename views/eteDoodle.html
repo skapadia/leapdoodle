@@ -57,6 +57,71 @@
             }
         };
 
+        var leapFrameHandler = function (frame, debugModeOn) {
+            if (debugModeOn) {
+                console.log("Frame event");
+                // If only a finger is showing, number of hands can be zero
+                console.log("# of fingers = " + frame.pointables.length);
+            }
+
+            // Tip position is in millimeters from the Leap origin
+            var changed = false;
+            var xData = [0,0];
+            var yData = [0,0];
+            if (frame.pointables.length >= 1) {
+                //console.log("Finger position = " + frame.pointables[i].toString());
+                var tipPosition = frame.pointables[0].tipPosition;
+                var xPosFromOriginMm = tipPosition[0];
+                var yPosFromOriginMm = tipPosition[1];
+                if (xPosFromOriginMm > xData[1]) {
+                    xData[1] = xPosFromOriginMm;
+                    changed = true;
+                }
+                else if (xPosFromOriginMm < xData[0]) {
+                    xData[0] = xPosFromOriginMm;
+                    changed = true;
+                }
+                if (yPosFromOriginMm > yData[1]) {
+                    yData[1] = yPosFromOriginMm;
+                    changed = true;
+                }
+                else if (yPosFromOriginMm < yData[0]) {
+                    yData[0] = yPosFromOriginMm;
+                    changed = true;
+                }
+
+                // Is there a better way to calibrate the leap ??
+                // -130 to 130
+                // 20 to 320
+                var screenX, screenY = 0;
+                var maxLeapX = 140;
+                var minLeapX = -140;
+                var minLeapY = 20;
+                var maxLeapY = 320;
+                var leapYHeight = (maxLeapY - minLeapY);
+                var halfScreenWidth = window.innerWidth / 2;
+                var fullScreenHeight = window.innerHeight;
+                if (xPosFromOriginMm >= 0) {
+                    screenX = Math.round((xPosFromOriginMm / maxLeapX) * halfScreenWidth + halfScreenWidth);
+                }
+                else {
+                    screenX = halfScreenWidth - Math.round((-xPosFromOriginMm / maxLeapX) * halfScreenWidth);
+                }
+                if (yPosFromOriginMm >= 20 && yPosFromOriginMm <= 320) {
+                    screenY = fullScreenHeight - Math.round((yPosFromOriginMm / leapYHeight) * fullScreenHeight);
+                }
+            }
+            if (frame.hands.length > 0) {
+                if (frame.hands[0].fingers) {
+                    if (debugModeOn) {
+                        console.log("Number of fingers w/hand = " + frame.hands[0].fingers.length);
+                    }
+                }
+            }
+
+            return [screenX, screenY, xData, yData, changed, xPosFromOriginMm, yPosFromOriginMm];
+        };
+
         $(document).ready(function () {
             var $video = $('#videoCapture');
             var video = $video[0];
@@ -70,6 +135,10 @@
             var canvasOffsetTop = canvasOffset.top;
             var currentColor = 'rgb(0, 0, 0, 0)';
             var mouseDown = false;
+            var debugModeOn = false;
+            var $currPos = $('#currPos');
+            var $leapCursor = $('#leapCursor');
+            var $posDataArea = $('#posDataArea');
 
 
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
@@ -134,6 +203,12 @@
                 }
             });
 
+            $(document).keydown(function (event) {
+                if (event.keyCode === 68) {
+                    debugModeOn = !debugModeOn;
+                }
+            });
+
             $('#photoSnapshotDialog').dialog({
                 resizable: false,
                 modal: true,
@@ -146,67 +221,15 @@
                         click: function () {
                             origSnapshotImageData = takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
                             var controller = new Leap.Controller({enableGestures: true});
-                            var xData = [0,0];
-                            var yData = [0,0];
-                            controller.on('animationFrame', function(frame) {
-                                console.log("Frame event");
-                                // If only a finger is showing, number of hands can be zero
-                                console.log("# of fingers = " + frame.pointables.length);
-                                // Tip position is in millimeters from the Leap origin
-                                var changed = false;
-                                if (frame.pointables.length >= 1) {
-                                    //console.log("Finger position = " + frame.pointables[i].toString());
-                                    var tipPosition = frame.pointables[0].tipPosition;
-                                    var xPosFromOriginMm = tipPosition[0];
-                                    var yPosFromOriginMm = tipPosition[1];
-                                    if (xPosFromOriginMm > xData[1]) {
-                                        xData[1] = xPosFromOriginMm;
-                                        changed = true;
-                                    }
-                                    else if (xPosFromOriginMm < xData[0]) {
-                                        xData[0] = xPosFromOriginMm;
-                                        changed = true;
-                                    }
-                                    if (yPosFromOriginMm > yData[1]) {
-                                        yData[1] = yPosFromOriginMm;
-                                        changed = true;
-                                    }
-                                    else if (yPosFromOriginMm < yData[0]) {
-                                        yData[0] = yPosFromOriginMm;
-                                        changed = true;
-                                    }
-                                    $('#currPos').html('(' + xPosFromOriginMm + ', ' + yPosFromOriginMm + ')');
-
-                                    // Is there a better way to calibrate the leap ??
-                                    // -130 to 130
-                                    // 20 to 320
-                                    var screenX, screenY = 0;
-                                    var maxLeapX = 140;
-                                    var minLeapX = -140;
-                                    var minLeapY = 20;
-                                    var maxLeapY = 320;
-                                    var leapYHeight = (maxLeapY - minLeapY);
-                                    var halfScreenWidth = window.innerWidth / 2;
-                                    var fullScreenHeight = window.innerHeight;
-                                    if (xPosFromOriginMm >= 0) {
-                                        screenX = Math.round((xPosFromOriginMm / maxLeapX) * halfScreenWidth + halfScreenWidth);
-                                    }
-                                    else {
-                                        screenX = halfScreenWidth - Math.round((-xPosFromOriginMm / maxLeapX) * halfScreenWidth);
-                                    }
-                                    if (yPosFromOriginMm >= 20 && yPosFromOriginMm <= 320) {
-                                        screenY = fullScreenHeight - Math.round((yPosFromOriginMm / leapYHeight) * fullScreenHeight);
-                                    }
-                                    $('#leapCursor').css('left', screenX);
-                                    $('#leapCursor').css('top', screenY);
-                                    if (changed) {
-                                        $('#posData').html('<li>Max X:'+xData[1]+'</li><li>Min X:'+xData[0]+'</li>');
-                                        $('#posData').append('<li>Max Y:'+yData[1]+'</li><li>Min Y:'+yData[0]+'</li>');
-                                    }
-                                }
-                                if (frame.hands.length > 0) {
-                                    if (frame.hands[0].fingers) {
-                                        console.log("Number of fingers w/hand = " + frame.hands[0].fingers.length);
+                            controller.on('animationFrame', function (frame) {
+                                var posData = leapFrameHandler(frame, debugModeOn);
+                                $leapCursor.css('left', posData[0]);
+                                $leapCursor.css('top', posData[1]);
+                                if (debugModeOn) {
+                                    $currPos.html('(' + posData[5] + ', ' + posData[6] + ')');
+                                    if (posData[4] === true) {
+                                        $posDataArea.html('<li>Max X:'+posData[2][1]+'</li><li>Min X:'+posData[2][0]+'</li>');
+                                        $posDataArea.append('<li>Max Y:'+posData[3][1]+'</li><li>Min Y:'+posData[3][0]+'</li>');
                                     }
                                 }
                             });
