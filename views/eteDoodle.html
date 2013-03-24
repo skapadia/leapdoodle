@@ -8,6 +8,7 @@
 
     <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
     <script type="text/javascript" src="js/jquery-ui-1.10.2.js"></script>
+    <script type="text/javascript" src="js/leap.min.js"></script>
 
     <script type="text/javascript">
 
@@ -144,6 +145,72 @@
                         id: "takeSnapshotButton",
                         click: function () {
                             origSnapshotImageData = takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
+                            var controller = new Leap.Controller({enableGestures: true});
+                            var xData = [0,0];
+                            var yData = [0,0];
+                            controller.on('animationFrame', function(frame) {
+                                console.log("Frame event");
+                                // If only a finger is showing, number of hands can be zero
+                                console.log("# of fingers = " + frame.pointables.length);
+                                // Tip position is in millimeters from the Leap origin
+                                var changed = false;
+                                if (frame.pointables.length >= 1) {
+                                    //console.log("Finger position = " + frame.pointables[i].toString());
+                                    var tipPosition = frame.pointables[0].tipPosition;
+                                    var xPosFromOriginMm = tipPosition[0];
+                                    var yPosFromOriginMm = tipPosition[1];
+                                    if (xPosFromOriginMm > xData[1]) {
+                                        xData[1] = xPosFromOriginMm;
+                                        changed = true;
+                                    }
+                                    else if (xPosFromOriginMm < xData[0]) {
+                                        xData[0] = xPosFromOriginMm;
+                                        changed = true;
+                                    }
+                                    if (yPosFromOriginMm > yData[1]) {
+                                        yData[1] = yPosFromOriginMm;
+                                        changed = true;
+                                    }
+                                    else if (yPosFromOriginMm < yData[0]) {
+                                        yData[0] = yPosFromOriginMm;
+                                        changed = true;
+                                    }
+                                    $('#currPos').html('(' + xPosFromOriginMm + ', ' + yPosFromOriginMm + ')');
+
+                                    // Is there a better way to calibrate the leap ??
+                                    // -130 to 130
+                                    // 20 to 320
+                                    var screenX, screenY = 0;
+                                    var maxLeapX = 140;
+                                    var minLeapX = -140;
+                                    var minLeapY = 20;
+                                    var maxLeapY = 320;
+                                    var leapYHeight = (maxLeapY - minLeapY);
+                                    var halfScreenWidth = window.innerWidth / 2;
+                                    var fullScreenHeight = window.innerHeight;
+                                    if (xPosFromOriginMm >= 0) {
+                                        screenX = Math.round((xPosFromOriginMm / maxLeapX) * halfScreenWidth + halfScreenWidth);
+                                    }
+                                    else {
+                                        screenX = halfScreenWidth - Math.round((-xPosFromOriginMm / maxLeapX) * halfScreenWidth);
+                                    }
+                                    if (yPosFromOriginMm >= 20 && yPosFromOriginMm <= 320) {
+                                        screenY = fullScreenHeight - Math.round((yPosFromOriginMm / leapYHeight) * fullScreenHeight);
+                                    }
+                                    $('#leapCursor').css('left', screenX);
+                                    $('#leapCursor').css('top', screenY);
+                                    if (changed) {
+                                        $('#posData').html('<li>Max X:'+xData[1]+'</li><li>Min X:'+xData[0]+'</li>');
+                                        $('#posData').append('<li>Max Y:'+yData[1]+'</li><li>Min Y:'+yData[0]+'</li>');
+                                    }
+                                }
+                                if (frame.hands.length > 0) {
+                                    if (frame.hands[0].fingers) {
+                                        console.log("Number of fingers w/hand = " + frame.hands[0].fingers.length);
+                                    }
+                                }
+                            });
+                            controller.connect();
                             $(this).dialog('close');
                         }
                     }
@@ -159,7 +226,6 @@
     </script>
 </head>
 <body>
-
 <div id="doodleApp" style="width: 100%; height: 100%">
     <canvas id="doodleCanvas" width="1024" height="768" style="border: solid 2px;"></canvas>
     <div id="toolPane" class="toolPane">
@@ -173,9 +239,16 @@
             <li><button id="resetImageButton" type="button" class="actionButton">START OVER</button></li>
             <li><button id="saveImageButton" type="button" class="actionButton">SAVE IT!!</button></li>
         </ul>
+        <div id="leapDebugInfo">
+            <div id="currPos"></div>
+            <ul id="posData" style="font-size:14pt;">
+            </ul>
+        </div>
+
     </div>
 </div>
-
+<div id="leapCursor" style="top:0;left:0;width:10px;height:10px;background-color:greenyellow;position:absolute;">
+</div>
 <div id="photoSnapshotDialog" title="Smile!" style="width:1050px; height:794px;display:none;">
     <video id="videoCapture" width="1024" height="768" autoplay></video>
 </div>
