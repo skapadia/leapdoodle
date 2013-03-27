@@ -273,8 +273,6 @@
 
                                                 console.log("Hover click detected!");
 
-
-
                                                 $(leapCursor).hide();
                                                 var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
                                                 $(leapCursor).show();
@@ -304,13 +302,24 @@
                                     else {
                                         if (Math.abs(lastScreenX - posData[0]) <= 10 ||
                                                 Math.abs(lastScreenY - posData[1]) <= 10) {
+                                            // Only start hover detecting if the velocity in X and Y is under 10mm/s
                                             if (posData[9]
                                                     && Math.abs(posData[9][0]) <= 10
                                                     && Math.abs(posData[9][1]) <= 10) {
                                                 hoverStartMs = Date.now();
                                                 hoverStartX = posData[0];
                                                 hoverStartY = posData[1];
-                                                // What about velocity data???
+
+                                                $(leapCursor).hide();
+                                                var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
+                                                $(leapCursor).show();
+
+                                                if (lastElementHoverClicked == hoverElement && ((hoverStartMs - lastElementHoverTime) <= 5000)) {
+                                                    // Do not process hover click events on the same element within 3 seconds
+                                                    hoverStartMs = 0;
+                                                    hoverStartX = 0;
+                                                    hoverStartY = 0;
+                                                }
                                             }
                                         }
                                     }
