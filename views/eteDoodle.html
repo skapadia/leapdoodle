@@ -36,6 +36,9 @@ var hoverStartY = 0;
 var lastElementHoverClicked = null;
 var lastElementHoverTime = 0;
 
+var enteredCanvas = false;
+var fingerBrushDown = false;
+
 var uploadCanvasImage = function (canvas) {
     // Base64 encoded string of the image data
     var imageDataBase64 = canvas.toDataURL('image/png');
@@ -194,7 +197,7 @@ $(document).ready(function () {
 
     var paintBrushDown = function (cursorX, cursorY) {
         brushDown = true;
-        drawBegin(event.pageX, event.pageY);
+        drawBegin(cursorX, cursorY);
     };
 
     var paintBrushUp = function () {
@@ -285,13 +288,42 @@ $(document).ready(function () {
                         // Are we in the canvas? Is this faster than using document.elementFromPoint
                         if (posData[0] >= canvasOffsetLeft && posData[0] <= canvasOffsetRight
                             && posData[1] >= canvasOffsetTop && posData[1] <= canvasOffsetBottom) {
-                            console.log("In canvas");
-                            // To draw, finger should be behind the Leap Motion
-                            if (posData[7] < 0) {
-                                console.log("should be drawing on canvas");
+                            var fingerBrushCurrentlyDown = posData[7] < 0;
+                            if (!enteredCanvas) {
+                                // Entering canvas
+                                enteredCanvas = true;
+                            }
+
+                            if (!fingerBrushDown) {
+                                // Entering drawing surface first time
+                                if (fingerBrushCurrentlyDown) {
+                                    fingerBrushDown = true;
+                                    paintBrushDown(posData[0], posData[1]);
+                                }
+                            }
+                            else {
+                                // Was on drawing surface previously
+                                // If still on drawing surface, continue drawing
+                                if (fingerBrushCurrentlyDown) {
+                                    paintBrushStroke(posData[0], posData[1]);
+                                }
+                                else {
+                                    // Picked up paint brush
+                                    paintBrushUp();
+                                }
                             }
                         }
                         else {
+                            if (enteredCanvas) {
+                                // Leaving canvas
+                                enteredCanvas = false;
+
+                                if (fingerBrushDown) {
+                                    paintBrushUp();
+                                    fingerBrushDown = false;
+                                }
+                            }
+
                             // Hover click processing
                             if (posData[9] > 0) {
                                 if (hoverStartMs > 0) {
