@@ -39,6 +39,9 @@ var lastElementHoverTime = 0;
 var enteredCanvas = false;
 var fingerBrushDown = false;
 
+// Z intervals: 0,25,50,75,100
+var zDepthLineWidthArray = [1,2,3,4,5];
+
 var uploadCanvasImage = function (canvas) {
     // Base64 encoded string of the image data
     var imageDataBase64 = canvas.toDataURL('image/png');
@@ -176,6 +179,7 @@ $(document).ready(function () {
 
     var drawBegin = function (cursorX, cursorY) {
         canvasCtx.strokeStyle = currentColor;
+        canvasCtx.lineWidth = 1;
         canvasCtx.beginPath();
         canvasCtx.moveTo((cursorX - canvasOffsetLeft), (cursorY - canvasOffsetTop));
     };
@@ -184,9 +188,14 @@ $(document).ready(function () {
         canvasCtx.stroke();
     };
 
-    var drawAndUpdatePosition = function (cursorX, cursorY) {
+    var drawAndUpdatePosition = function (cursorX, cursorY, lineWidth) {
         var canvasX = (cursorX - canvasOffsetLeft);
         var canvasY = (cursorY - canvasOffsetTop);
+
+        if (lineWidth) {
+            canvasCtx.lineWidth = lineWidth;
+        }
+
         canvasCtx.lineTo(canvasX, canvasY);
         canvasCtx.stroke();
 
@@ -205,9 +214,9 @@ $(document).ready(function () {
         drawEnd();
     };
 
-    var paintBrushStroke = function (cursorX, cursorY) {
+    var paintBrushStroke = function (cursorX, cursorY, lineWidth) {
         if (brushDown) {
-            drawAndUpdatePosition(cursorX, cursorY);
+            drawAndUpdatePosition(cursorX, cursorY, lineWidth);
         }
     };
 
@@ -304,8 +313,11 @@ $(document).ready(function () {
                             else {
                                 // Was on drawing surface previously
                                 // If still on drawing surface, continue drawing
-                                if (fingerBrushCurrentlyDown && posData[10][2] <= 50) {
-                                    paintBrushStroke(posData[0], posData[1]);
+                                var index = Math.min(Math.floor(Math.abs(posData[7]) / 25), 4);
+                                var lineWidth = zDepthLineWidthArray[index];
+                                $posDataArea.html("<li>Z Pos = " + posData[7] + ", Index = " + index + ", Width = " + lineWidth + "</li>");
+                                if (fingerBrushCurrentlyDown && posData[10][2] <= 100) {
+                                    paintBrushStroke(posData[0], posData[1], lineWidth);
                                 }
                                 else {
                                     // Picked up paint brush
@@ -447,7 +459,7 @@ $(document).ready(function () {
             <li id="bluePen" class="paintColor backgroundBlue leapHoverClickable"></li>
             <li id="yellowPen" class="paintColor backgroundYellow leapHoverClickable"></li>
         </ul>
-        <ul class="actionButtonList" style="text-align: left;">
+        <ul class="actionButtonList" style="text-align: left;display:none;">
             <li>
                 <button id="drawButton" type="button" class="actionButton leapHoverClickable">START DRAWING</button>
             </li>
@@ -460,7 +472,7 @@ $(document).ready(function () {
         </ul>
         <div id="leapDebugInfo">
             <div id="currPos"></div>
-            <ul id="posData" style="font-size:14pt;">
+            <ul id="posDataArea" style="font-size:14pt;">
             </ul>
         </div>
 
