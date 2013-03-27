@@ -23,11 +23,18 @@
         var LEAP_HEIGHT = (MAX_LEAP_Y - MIN_LEAP_Y);
         var HALF_SCREEN_WIDTH = window.innerWidth / 2;
         var FULL_SCREEN_HEIGHT = window.innerHeight;
-        console.log("FULL SCREEN HEIGHT = " + FULL_SCREEN_HEIGHT);
         var xData = [0,0];
         var yData = [0,0];
+
         var lastScreenX = 0;
         var lastScreenY = 0;
+        var lastScreenTapTime = 0;
+
+        var hoverStartMs = 0;
+        var hoverStartX = 0;
+        var hoverStartY = 0;
+        var lastElementHoverClicked = null;
+        var lastElementHoverTime = 0;
 
         var uploadCanvasImage = function (canvas) {
             // Base64 encoded string of the image data
@@ -94,6 +101,7 @@
             var screenTapDetected = false;
             var screenX, screenY = 0;
             var xPosFromOriginMm, yPosFromOriginMm = 0;
+            var tipVelocity = null;
             if (frame.gestures && frame.gestures.length == 1) {
                 // Only process screen tap
                 if (frame.gestures[0].type === 'screenTap') {
@@ -108,6 +116,7 @@
                 //console.log("Finger position = " + frame.pointables[i].toString());
                 xPosFromOriginMm =  frame.pointables[0].tipPosition[0];
                 yPosFromOriginMm = frame.pointables[0].tipPosition[1];
+                tipVelocity = frame.pointables[0].tipVelocity;
                 if (debugModeOn) {
                     if (xPosFromOriginMm > xData[1]) {
                         xData[1] = xPosFromOriginMm;
@@ -138,7 +147,7 @@
                 }
             }*/
 
-            return [screenX, screenY, xData, yData, changed, xPosFromOriginMm, yPosFromOriginMm, screenTapDetected];
+            return [screenX, screenY, xData, yData, changed, xPosFromOriginMm, yPosFromOriginMm, screenTapDetected, frame.pointables.length, tipVelocity];
         };
 
         $(document).ready(function () {
@@ -251,13 +260,84 @@
                                 if (posData[1] !== lastScreenY) {
                                     $leapCursor.css('top', posData[1]);
                                 }
+
+                                // Hover click processing
+                                if (posData[8] > 0) {
+                                    if (hoverStartMs > 0) {
+                                        if (Math.abs(hoverStartX - posData[0]) <= 10 ||
+                                                Math.abs(hoverStartY - posData[1]) <= 10) {
+                                            var hoverTime = Date.now();
+                                            if ((hoverTime - hoverStartMs) >= 1000) {
+                                                // We've hovered over a point for a while, get the element
+                                                // and see if its hoverClickable
+
+                                                console.log("Hover click detected!");
+
+
+
+                                                $(leapCursor).hide();
+                                                var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
+                                                $(leapCursor).show();
+
+                                                if (lastElementHoverClicked == hoverElement && ((hoverTime - lastElementHoverTime) <= 1000)) {
+                                                    // Do not process hover click events on the same element within 1 second
+                                                }
+                                                else {
+                                                    console.log("Hover Start Pos = " +'(' + hoverStartX + ', ' + hoverStartY + ')');
+                                                    console.log("Hover Element Clicked = " + $(hoverElement).attr('id'));
+
+                                                    lastElementHoverClicked = hoverElement;
+                                                    lastElementHoverTime = hoverTime;
+                                                }
+
+                                                hoverStartMs = 0;
+                                                hoverStartX = 0;
+                                                hoverStartY = 0;
+                                            }
+                                        }
+                                        else {
+                                            hoverStartMs = 0;
+                                            hoverStartX = 0;
+                                            hoverStartY = 0;
+                                        }
+                                    }
+                                    else {
+                                        if (Math.abs(lastScreenX - posData[0]) <= 10 ||
+                                                Math.abs(lastScreenY - posData[1]) <= 10) {
+                                            if (posData[9]
+                                                    && Math.abs(posData[9][0]) <= 10
+                                                    && Math.abs(posData[9][1]) <= 10) {
+                                                hoverStartMs = Date.now();
+                                                hoverStartX = posData[0];
+                                                hoverStartY = posData[1];
+                                                // What about velocity data???
+                                            }
+                                        }
+                                    }
+                                }
+
+
+                                // Gesture processing
+                                if (posData[7] === true) {
+                                    // Screen tap detected - only accept it if previous tap is at least a second apart
+                                    var screenTapTime = Date.now();
+                                    if ((screenTapTime - lastScreenTapTime) >= 1000) {
+                                        console.log("Screen tap detected!!");
+                                        $(leapCursor).hide();
+                                        var element = document.elementFromPoint(posData[0], posData[1]);
+                                        console.log("Element = " + $(element).attr('id'));
+                                        if (element) {
+                                            $(element).trigger('click');
+                                            $(element).css('color', 'red');
+                                        }
+                                        $(leapCursor).show();
+                                        lastScreenTapTime = screenTapTime;
+                                    }
+                                }
+
+                                // Update last screen position
                                 lastScreenX = posData[0];
                                 lastScreenY = posData[1];
-
-                                if (posData[7] === true) {
-                                    // Screen tap detected
-                                    console.log("Screen tap detected!!");
-                                }
 
                                 if (debugModeOn) {
                                     $currPos.html('(' + posData[0] + ', ' + posData[1] + ')' + '&lt;- (' + posData[5] + ', ' + posData[6] + ')');
@@ -286,12 +366,13 @@
     <canvas id="doodleCanvas" width="1024" height="768" style="border: solid 2px;"></canvas>
     <div id="toolPane" class="toolPane">
         <ul class="paintColorList">
-            <li class="paintColor backgroundRed"></li>
-            <li class="paintColor backgroundGreen"></li>
-            <li class="paintColor backgroundBlue"></li>
-            <li class="paintColor backgroundYellow"></li>
+            <li id="redPen" class="paintColor backgroundRed hoverClickable"></li>
+            <li id="greenPen" class="paintColor backgroundGreen hoverClickable"></li>
+            <li id="bluePen" class="paintColor backgroundBlue hoverClickable"></li>
+            <li id="yellowPen" class="paintColor backgroundYellow hoverClickable"></li>
         </ul>
         <ul class="actionButtonList" style="text-align: left;">
+            <li><button id="drawButton" type="button" class="actionButton">START DRAWING</button></li>
             <li><button id="resetImageButton" type="button" class="actionButton">START OVER</button></li>
             <li><button id="saveImageButton" type="button" class="actionButton">SAVE IT!!</button></li>
         </ul>
