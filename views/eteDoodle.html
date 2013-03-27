@@ -304,7 +304,7 @@ $(document).ready(function () {
                             else {
                                 // Was on drawing surface previously
                                 // If still on drawing surface, continue drawing
-                                if (fingerBrushCurrentlyDown) {
+                                if (fingerBrushCurrentlyDown && posData[10][2] <= 50) {
                                     paintBrushStroke(posData[0], posData[1]);
                                 }
                                 else {
