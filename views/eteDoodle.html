@@ -110,24 +110,20 @@ var leapFrameHandler = function (frame, debugModeOn) {
     var screenX, screenY = 0;
     var xPosFromOriginMm, yPosFromOriginMm, zPosFromOriginMm = 0;
     var tipVelocity = null;
+    var detectedGesture = null;
     if (frame.gestures && frame.gestures.length == 1) {
-        // Only process screen tap
-        if (frame.gestures[0].type === 'screenTap') {
+        detectedGesture = frame.gestures[0];
+        if (detectedGesture.type === 'screenTap') {
             screenTapDetected = true;
-            xPosFromOriginMm = frame.gestures[0].position[0];
-            yPosFromOriginMm = frame.gestures[0].position[1];
+            xPosFromOriginMm = detectedGesture.position[0];
+            yPosFromOriginMm = detectedGesture.position[1];
+            zPosFromOriginMm = detectedGesture.position[2];
             screenX = leapToScreenX(xPosFromOriginMm);
             screenY = leapToScreenY(yPosFromOriginMm);
         }
-        else if (frame.gestures[0].type === 'swipe') {
-            //console.log("Swipe detected going " + frame.gestures[0].direction);
-        }
-        else if (frame.gestures[0].type === 'circle') {
-            //console.log("Circle detected: Radius = " + frame.gestures[0].radius);
-            //console.log("Circle detected: Progress = " + frame.gestures[0].progress);
-        }
     }
     else if (frame.pointables.length >= 1) {
+        frame.pointables[0].direction.angleT
         var trackedPointable = null;
         if (!lastPointableId) {
             trackedPointable = frame.pointables[0];
@@ -182,7 +178,23 @@ var leapFrameHandler = function (frame, debugModeOn) {
      }
      }*/
 
-    return [screenX, screenY, xData, yData, changed, xPosFromOriginMm, yPosFromOriginMm, zPosFromOriginMm, screenTapDetected, frame.pointables.length, tipVelocity];
+    var posData = {
+        screenX: screenX,
+        screenY: screenY,
+        leapX: xPosFromOriginMm,
+        leapY: yPosFromOriginMm,
+        leapZ: zPosFromOriginMm,
+        leapMinX: xData[0],
+        leapMaxX: xData[1],
+        leapMinY: yData[0],
+        leapMaxY: yData[1],
+        minMaxChanged: changed,
+        leapPointableCount: frame.pointables.length,
+        leapPointableTipVelocity: tipVelocity,
+        gesture: detectedGesture
+    };
+
+    return posData;
 };
 
 $(document).ready(function () {
@@ -252,6 +264,7 @@ $(document).ready(function () {
 
     $(document).delegate('.paintColor', 'click', function (event) {
         currentColor = $(this).css('background-color');
+        $(this).css('')
         console.log("Clicked color = " + currentColor);
     });
 
@@ -315,18 +328,18 @@ $(document).ready(function () {
                     controller.on('animationFrame', function (frame) {
                         var posData = leapFrameHandler(frame, debugModeOn);
 
-                        if (posData[0] !== lastScreenX) {
-                            $leapCursor.css('left', posData[0]);
+                        if (posData.screenX !== lastScreenX) {
+                            $leapCursor.css('left', posData.screenX);
                         }
-                        if (posData[1] !== lastScreenY) {
-                            $leapCursor.css('top', posData[1]);
+                        if (posData.screenY !== lastScreenY) {
+                            $leapCursor.css('top', posData.screenY);
                         }
 
                         // Are we in the canvas?
-                        if (posData[0] >= canvasOffsetLeft && posData[0] <= canvasOffsetRight
-                            && posData[1] >= canvasOffsetTop && posData[1] <= canvasOffsetBottom) {
-                            //$posDataArea.html("<li>Z Pos = " + posData[7] + ", X = " + posData[0] + ", Y = " + posData[1] + ", Fingers = " + posData[9] + "</li>");
-                            var fingerBrushCurrentlyDown = posData[7] < 0;
+                        if (posData.screenX >= canvasOffsetLeft && posData.screenX <= canvasOffsetRight
+                            && posData.screenY >= canvasOffsetTop && posData.screenY <= canvasOffsetBottom) {
+                            //$posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
+                            var fingerBrushCurrentlyDown = posData.leapZ < 0;
                             if (!enteredCanvas) {
                                 enteredCanvas = true;
                             }
@@ -335,20 +348,20 @@ $(document).ready(function () {
                                 if (fingerBrushCurrentlyDown) {
                                     console.log("Entered drawing surface");
                                     fingerBrushDown = true;
-                                    paintBrushDown(posData[0], posData[1]);
+                                    paintBrushDown(posData.screenX, posData.screenY);
                                 }
                             }
                             else {
                                 // Was on drawing surface previously
                                 // If still on drawing surface, continue drawing
-                                if (posData[10][2] > 100) {
+                                if (posData.leapPointableTipVelocity[2] > 100) {
                                     console.log("Z Velocity Threshold Passed");
                                 }
-                                if (fingerBrushCurrentlyDown && posData[10][2] <= 100) {
-                                    var index = Math.min(Math.floor(Math.abs(posData[7]) / 25), 4);
+                                if (fingerBrushCurrentlyDown && posData.leapPointableTipVelocity[2] <= 100) {
+                                    var index = Math.min(Math.floor(Math.abs(posData.leapZ) / 25), 4);
                                     var lineWidth = zDepthLineWidthArray[index];
-                                    $posDataArea.html("<li>Z Pos = " + posData[7] + ", X = " + posData[0] + ", Y = " + posData[1] + ", Fingers = " + posData[9] + "</li>");
-                                    paintBrushStroke(posData[0], posData[1], lineWidth);
+                                    $posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
+                                    paintBrushStroke(posData.screenX, posData.screenY, lineWidth);
                                 }
                                 else {
                                     // Picked up paint brush
@@ -371,10 +384,10 @@ $(document).ready(function () {
                             }
 
                             // Hover click processing
-                            if (posData[9] > 0) {
+                            if (posData.leapPointableCount > 0) {
                                 if (hoverStartMs > 0) {
-                                    if (Math.abs(hoverStartX - posData[0]) <= 10 ||
-                                            Math.abs(hoverStartY - posData[1]) <= 10) {
+                                    if (Math.abs(hoverStartX - posData.screenX) <= 10 ||
+                                            Math.abs(hoverStartY - posData.screenY) <= 10) {
                                         var hoverTime = Date.now();
                                         if ((hoverTime - hoverStartMs) >= 1000) {
                                             // We've hovered over a point for a while, get the element
@@ -410,15 +423,15 @@ $(document).ready(function () {
                                     }
                                 }
                                 else {
-                                    if (Math.abs(lastScreenX - posData[0]) <= 10 ||
-                                            Math.abs(lastScreenY - posData[1]) <= 10) {
+                                    if (Math.abs(lastScreenX - posData.screenX) <= 10 ||
+                                            Math.abs(lastScreenY - posData.screenY) <= 10) {
                                         // Only start hover detecting if the velocity in X and Y is under 10mm/s
-                                        if (posData[10]
-                                                && Math.abs(posData[10][0]) <= 10
-                                                && Math.abs(posData[10][1]) <= 10) {
+                                        if (posData.leapPointableTipVelocity
+                                                && Math.abs(posData.leapPointableTipVelocity[0]) <= 10
+                                                && Math.abs(posData.leapPointableTipVelocity[1]) <= 10) {
                                             hoverStartMs = Date.now();
-                                            hoverStartX = posData[0];
-                                            hoverStartY = posData[1];
+                                            hoverStartX = posData.screenX;
+                                            hoverStartY = posData.screenY;
 
                                             $(leapCursor).hide();
                                             var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
@@ -437,7 +450,25 @@ $(document).ready(function () {
                                 }
                             }
 
-
+                            // Gesture processing
+                            if (posData.gesture) {
+                                if (posData.gesture.type === 'circle') {
+                                    if (posData.gesture.state === 'stop' && posData.gesture.radius >= 25 && (1.9 <= posData.gesture.progress && posData.gesture.progress <= 2.5)) {
+                                        if (posData.gesture.center[2] > 0) {
+                                            $('#resetImageButton').trigger('click');
+                                        }
+                                    }
+                                }
+                                else if (posData.gesture.type === 'swipe') {
+                                    if (posData.gesture.state === 'stop') {
+                                        //console.log("Swipe detected direction = " + posData.gesture.direction);
+                                        if (posData.gesture.direction[0] <= -0.9) {
+                                          console.log("Should upload");
+                                        }
+                                    }
+                                }
+                            }
+                            /*
                             // Gesture processing
                             if (posData[8] === true) {
                                 // Screen tap detected - only accept it if previous tap is at least a second apart
@@ -445,7 +476,7 @@ $(document).ready(function () {
                                 if ((screenTapTime - lastScreenTapTime) >= 1000) {
                                     console.log("Screen tap detected!!");
                                     $(leapCursor).hide();
-                                    var element = document.elementFromPoint(posData[0], posData[1]);
+                                    var element = document.elementFromPoint(posData.screenX, posData.screenY);
                                     console.log("Element = " + $(element).attr('id'));
                                     if (element) {
                                         $(element).trigger('click');
@@ -455,17 +486,18 @@ $(document).ready(function () {
                                     lastScreenTapTime = screenTapTime;
                                 }
                             }
+                            */
                         }
 
                         // Update last screen position
-                        lastScreenX = posData[0];
-                        lastScreenY = posData[1];
+                        lastScreenX = posData.screenX;
+                        lastScreenY = posData.screenY;
 
                         if (debugModeOn) {
-                            $currPos.html('(' + posData[0] + ', ' + posData[1] + ')' + '&lt;- (' + posData[5] + ', ' + posData[6] + ')');
-                            if (posData[4] === true) {
-                                $posDataArea.html('<li>Max X:' + posData[2][1] + '</li><li>Min X:' + posData[2][0] + '</li>');
-                                $posDataArea.append('<li>Max Y:' + posData[3][1] + '</li><li>Min Y:' + posData[3][0] + '</li>');
+                            $currPos.html('(' + posData.screenX + ', ' + posData.screenY + ')' + '&lt;- (' + posData.leapX + ', ' + posData.leapY + ')');
+                            if (posData.minMaxChanged === true) {
+                                $posDataArea.html('<li>Max X:' + posData.leapMaxX + '</li><li>Min X:' + posData.leapMinX + '</li>');
+                                $posDataArea.append('<li>Max Y:' + posData.leapMaxY + '</li><li>Min Y:' + posData.leapMinY + '</li>');
                             }
                         }
                     });

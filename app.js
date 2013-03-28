@@ -47,6 +47,7 @@ app.configure(function() {
     app.use(express.methodOverride());
     app.use(express.compress());
     app.use(express.static(path.join(__dirname, 'public')));
+    app.use(express.favicon(path.join(__dirname, 'public/images/chariot_horse.png')));
     app.engine('html', engines.underscore);
     app.use(function (err, req, res, next) {
         console.error(err.stack);
