@@ -6,6 +6,8 @@
     "dependencies": {
         "express": "3.1.0",
         "consolidate": "0.8.0",
-        "underscore": "1.4.4"
+        "underscore": "1.4.4",
+        "leapjs": "0.1.2",
+        "websocket": "1.0.8"
     }
 }
