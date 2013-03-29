@@ -263,8 +263,13 @@ $(document).ready(function () {
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
     $(document).delegate('.paintColor', 'click', function (event) {
+        var currentSelectedColorButton = $(this).parent().find('.selectedColor');
+        $(currentSelectedColorButton).removeClass('selectedColor');
+        $(this).addClass('selectedColor');
+
         currentColor = $(this).css('background-color');
-        $(this).css('')
+        $leapCursor.css('background-color', currentColor);
+
         console.log("Clicked color = " + currentColor);
     });
 
@@ -464,6 +469,7 @@ $(document).ready(function () {
                                         //console.log("Swipe detected direction = " + posData.gesture.direction);
                                         if (posData.gesture.direction[0] <= -0.9) {
                                           console.log("Should upload");
+                                            $('#saveImageButton').trigger('click');
                                         }
                                     }
                                 }
@@ -520,6 +526,7 @@ $(document).ready(function () {
     <canvas id="doodleCanvas" width="1024" height="768" style="border: solid 2px;"></canvas>
     <div id="toolPane" class="toolPane">
         <ul class="paintColorList">
+            <li id="blackPen" class="paintColor backgroundBlack leapHoverClickable selectedColor"></li>
             <li id="redPen" class="paintColor backgroundRed leapHoverClickable"></li>
             <li id="greenPen" class="paintColor backgroundGreen leapHoverClickable"></li>
             <li id="bluePen" class="paintColor backgroundBlue leapHoverClickable"></li>
@@ -544,7 +551,7 @@ $(document).ready(function () {
 
     </div>
 </div>
-<div id="leapCursor" style="top:0;left:0;width:10px;height:10px;background-color:greenyellow;position:absolute;">
+<div id="leapCursor" style="top:0;left:0;position:absolute;" class="leapCursor">
 </div>
 <div id="photoSnapshotDialog" title="Smile!" style="width:1050px; height:794px;display:none;">
     <video id="videoCapture" width="1024" height="768" autoplay></video>

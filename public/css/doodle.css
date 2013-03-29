@@ -37,9 +37,15 @@ ul.paintColorList {
     height:111px;
     border-radius: 10px;
     border: solid 3px;
+    -webkit-transition: box-shadow 0.25s ease-in-out;
 }
 
 .paintColor:hover {
+    border-color:black;
+}
+
+.backgroundBlack {
+    background-color: black;
     border-color:black;
 }
 
@@ -61,4 +67,14 @@ ul.paintColorList {
 .backgroundYellow {
     background-color: yellow;
     border-color:yellow;
+}
+
+.selectedColor {
+    box-shadow: 0 0 20px 5px  rgba(204, 0, 255, 1);
+}
+
+.leapCursor {
+    width:10px;
+    height:10px;
+    background-color: black;
 }
