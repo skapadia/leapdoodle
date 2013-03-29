@@ -11,7 +11,7 @@
 button.actionButton {
     font-family: Roboto, sans-serif;
     /*font-weight: bold;*/
-    font-size: 32pt;
+    font-size: 14pt;
     background-color: rgba(116,116,116,0.17);
     border-radius:10px;
 }
