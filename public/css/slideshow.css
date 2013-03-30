@@ -1,10 +1,10 @@
 .rs-slideshow {
     border: 12px solid #444;
-    height: 240px;
+    width: 1024px;
+    height: 768px;
     margin: 24px auto;
     overflow: hidden;
     position: relative;
-    width: 620px;
 }
 
 .rs-slideshow .slide-container {

@@ -39,6 +39,7 @@ console.log("User home dir = " + userHomeDir);
 console.log("Snapshot image dir = " + snapshotImageDir);
 
 var allowCrossDomain = function(req, res, next) {
+    // CORS headers
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
