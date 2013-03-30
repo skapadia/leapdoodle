@@ -38,13 +38,21 @@ else {
 console.log("User home dir = " + userHomeDir);
 console.log("Snapshot image dir = " + snapshotImageDir);
 
+var allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
 
+    next();
+};
 
 app.configure(function() {
     app.set('views', __dirname + '/views');
     app.use(express.logger());
     app.use(express.bodyParser());
+    app.use(express.cookieParser());
     app.use(express.methodOverride());
+    app.use(allowCrossDomain);
     app.use(express.compress());
     app.use(express.static(path.join(__dirname, 'public')));
     app.use(express.favicon(path.join(__dirname, 'public/images/chariot_horse.png')));
@@ -57,6 +65,10 @@ app.configure(function() {
 
 app.get('/eteDoodle', function (req, res) {
    res.render('eteDoodle.html');
+});
+
+app.get('/eteDoodle/snapshots/count', function (req, res) {
+   res.json({ snapshotCount: currImageIndex });
 });
 
 // TODO: Serve images for the slideshow web page

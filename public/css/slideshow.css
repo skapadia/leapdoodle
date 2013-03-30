@@ -1,0 +1,27 @@
+.rs-slideshow {
+    border: 12px solid #444;
+    height: 240px;
+    margin: 24px auto;
+    overflow: hidden;
+    position: relative;
+    width: 620px;
+}
+
+.rs-slideshow .slide-container {
+    background-color: #444;
+    height: 100%;
+    left: 0;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+
+.rs-slideshow .slide-container img {
+    position: absolute;
+}
+
+/*    Hide the slide data container    */
+.rs-slideshow .slides {
+    display: none;
+}
