@@ -12,11 +12,14 @@
 
         var IMAGE_POLLING_INTERVAL_MS = 2 * 1000;
 
-        var imageSlidesArray = [];
+        var imageSlidesArray = [{url:'../public/images/ChariotLogo.jpg'}];
         var $slideshowDiv;
+        var currSnapshotCount = 0;
+        var currImageCounter = 0;
 
         var snapshotCountCallback = function (data) {
             console.log("Number of snapshots stored = " + data.snapshotCount);
+            currSnapshotCount = data.snapshotCount;
         };
 
         var checkForNewImages = function () {
@@ -26,6 +29,18 @@
                     .fail(function () { console.log("Failed to retrieve latest image index!")});
 
             setTimeout(checkForNewImages, IMAGE_POLLING_INTERVAL_MS);
+        };
+
+        var addImageToSlideshow = function () {
+            console.log("Checking whether to add image to slideshow: currSnapshotCount = " + currSnapshotCount);
+            console.log("Curr image counter = " + currImageCounter);
+            if (currSnapshotCount > currImageCounter) {
+                var slides = [{url: 'http://localhost:3000/eteDoodle/snapshots/' + currImageCounter}];
+                $slideshowDiv.rsfSlideshow('addSlides', slides);
+                currImageCounter += 1;
+            }
+
+            setTimeout(addImageToSlideshow, 1000);
         };
 
         $.support.cors = true;
@@ -43,6 +58,7 @@
             });
 
             setTimeout(checkForNewImages, IMAGE_POLLING_INTERVAL_MS);
+            setTimeout(addImageToSlideshow, 1000);
         });
     </script>
 </head>

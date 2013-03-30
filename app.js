@@ -72,6 +72,20 @@ app.get('/eteDoodle/snapshots/count', function (req, res) {
    res.json({ snapshotCount: currImageIndex });
 });
 
+app.get('/eteDoodle/snapshots/:snapshotNum', function (req, res) {
+    fs.readFile(path.join(snapshotImageDir, 'snapshot_' + req.params.snapshotNum + '.png'), function (err, data) {
+        if (err) {
+            console.error("Unable to read image: " + err.message);
+            res.send(404);
+        }
+        else {
+            var image = data;
+            res.writeHead(200, {'Content-Type': 'image/png' });
+            res.end(image, 'binary');
+        }
+    });
+});
+
 // TODO: Serve images for the slideshow web page
 
 app.post('/eteDoodle/saveSnapshot', function (req, res) {
