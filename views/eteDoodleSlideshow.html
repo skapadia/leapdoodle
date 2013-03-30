@@ -13,9 +13,10 @@
         var IMAGE_POLLING_INTERVAL_MS = 2 * 1000;
 
         var imageSlidesArray = [{url:'../public/images/ChariotLogo.jpg'}];
-        var $slideshowDiv;
         var currSnapshotCount = 0;
         var currImageCounter = 0;
+
+        var $slideshowDiv;
 
         var snapshotCountCallback = function (data) {
             console.log("Number of snapshots stored = " + data.snapshotCount);
@@ -40,7 +41,7 @@
                 currImageCounter += 1;
             }
 
-            setTimeout(addImageToSlideshow, 1000);
+            setTimeout(addImageToSlideshow, IMAGE_POLLING_INTERVAL_MS);
         };
 
         $.support.cors = true;
@@ -58,7 +59,7 @@
             });
 
             setTimeout(checkForNewImages, IMAGE_POLLING_INTERVAL_MS);
-            setTimeout(addImageToSlideshow, 1000);
+            setTimeout(addImageToSlideshow, IMAGE_POLLING_INTERVAL_MS);
         });
     </script>
 </head>
