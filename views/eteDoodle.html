@@ -216,32 +216,53 @@ $(document).ready(function () {
     var $currPos = $('#currPos');
     var $leapCursor = $('#leapCursor');
     var $posDataArea = $('#posDataArea');
+    var grayscaleBrushMode = false;
 
     var drawBegin = function (cursorX, cursorY) {
-        canvasCtx.strokeStyle = currentColor;
-        canvasCtx.lineWidth = 1;
-        canvasCtx.beginPath();
-        canvasCtx.moveTo((cursorX - canvasOffsetLeft), (cursorY - canvasOffsetTop));
+        if (!grayscaleBrushMode) {
+            canvasCtx.strokeStyle = currentColor;
+            canvasCtx.lineWidth = 1;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo((cursorX - canvasOffsetLeft), (cursorY - canvasOffsetTop));
+        }
     };
 
     var drawEnd = function () {
-        canvasCtx.stroke();
+        if (!grayscaleBrushMode) {
+            canvasCtx.stroke();
+        }
     };
 
     var drawAndUpdatePosition = function (cursorX, cursorY, lineWidth) {
         var canvasX = (cursorX - canvasOffsetLeft);
         var canvasY = (cursorY - canvasOffsetTop);
 
-        if (lineWidth) {
-            canvasCtx.lineWidth = lineWidth;
+        if (!lineWidth) {
+            lineWidth = 1;
         }
 
-        canvasCtx.lineTo(canvasX, canvasY);
-        canvasCtx.stroke();
+        if (!grayscaleBrushMode) {
+            canvasCtx.lineWidth = lineWidth;
+            canvasCtx.lineTo(canvasX, canvasY);
+            canvasCtx.stroke();
 
-        // Now start a new path from this point
-        canvasCtx.beginPath();
-        canvasCtx.moveTo(canvasX, canvasY);
+            // Now start a new path from this point
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(canvasX, canvasY);
+        }
+        else {
+            var halfWidth = Math.max(lineWidth, 4) * 4;
+            var fullWidth = halfWidth * 2;
+            var imageData = canvasCtx.getImageData(canvasX - (halfWidth), canvasY - (halfWidth), fullWidth, fullWidth);
+            var data = imageData.data;
+            for(var i = 0, n = data.length; i < n; i += 4) {
+                var gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                data[i] = gray;
+                data[i + 1] = gray;
+                data[i + 2] = gray;
+            }
+            canvasCtx.putImageData(imageData, canvasX - (halfWidth), canvasY - (halfWidth));
+        }
     };
 
     var paintBrushDown = function (cursorX, cursorY) {
@@ -263,14 +284,21 @@ $(document).ready(function () {
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
     $(document).delegate('.paintColor', 'click', function (event) {
-        var currentSelectedColorButton = $(this).parent().find('.selectedColor');
+        var currentSelectedColorButton = $(this).parent().parent().find('.selectedColor');
         $(currentSelectedColorButton).removeClass('selectedColor');
         $(this).addClass('selectedColor');
 
-        currentColor = $(this).css('background-color');
-        $leapCursor.css('background-color', currentColor);
+        if ($(this).hasClass('backgroundGrayscale')) {
+            grayscaleBrushMode = true;
+            console.log("Clicked grayscale mode!");
+        }
+        else {
+            grayscaleBrushMode = false;
+            currentColor = $(this).css('background-color');
+            $leapCursor.css('background-color', currentColor);
 
-        console.log("Clicked color = " + currentColor);
+            console.log("Clicked color = " + currentColor);
+        }
     });
 
     $('#resetImageButton').bind('click', function (event) {
@@ -525,12 +553,19 @@ $(document).ready(function () {
 <div id="doodleApp" style="width: 100%; height: 100%">
     <canvas id="doodleCanvas" width="1024" height="768" style="border: solid 2px;"></canvas>
     <div id="toolPane" class="toolPane">
-        <ul class="paintColorList">
+        <ul class="paintColorList" style="float:left;">
             <li id="blackPen" class="paintColor backgroundBlack leapHoverClickable selectedColor"></li>
             <li id="redPen" class="paintColor backgroundRed leapHoverClickable"></li>
             <li id="greenPen" class="paintColor backgroundGreen leapHoverClickable"></li>
             <li id="bluePen" class="paintColor backgroundBlue leapHoverClickable"></li>
             <li id="yellowPen" class="paintColor backgroundYellow leapHoverClickable"></li>
+        </ul>
+        <ul class="paintColorList" style="float:left;">
+            <li id="neonGreenPen" class="paintColor backgroundNeonGreen leapHoverClickable"></li>
+            <li id="lavenderPen" class="paintColor backgroundLavender leapHoverClickable"></li>
+            <li id="brownPen" class="paintColor backgroundBrown leapHoverClickable"></li>
+            <li id="skyBluePen" class="paintColor backgroundSkyBlue leapHoverClickable"></li>
+            <li id="orangePen" class="paintColor backgroundGrayscale leapHoverClickable"></li>
         </ul>
         <ul class="actionButtonList" style="text-align: left;">
             <li>

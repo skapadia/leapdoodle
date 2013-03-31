@@ -28,7 +28,7 @@ ul.paintColorList {
     margin-left:10px;
     padding-left:0px;
     text-indent:0;
-    width:335px;
+    width:120px;
 }
 
 .paintColor {
@@ -67,6 +67,30 @@ ul.paintColorList {
 .backgroundYellow {
     background-color: yellow;
     border-color:yellow;
+}
+
+.backgroundNeonGreen {
+    background-color: rgb(102, 255, 51);
+    border-color: rgb(102, 255, 51);
+}
+
+.backgroundLavender {
+    background-color: rgb(255, 0, 255);
+    border-color: rgb(255, 0, 255);
+}
+
+.backgroundBrown {
+    background-color: rgb(153, 102, 51);
+    border-color: rgb(153, 102, 51);
+}
+
+.backgroundSkyBlue {
+    background-color: deepskyblue;
+    border-color:deepskyblue;
+}
+
+.backgroundGrayscale {
+    background-image:-webkit-linear-gradient(left, #999999 0%, #ffffff 100%);
 }
 
 .selectedColor {

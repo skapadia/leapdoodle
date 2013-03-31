@@ -111,11 +111,12 @@ console.log('Listening on port 3000');
 /*
 var controller = new Leap.Controller({enableGestures: true});
 controller.on('frame', function(frame) {
-    /*console.log("Frame event");
+    console.log("Frame event");
     // If only a finger is showing, number of hands can be zero
     console.log("# of fingers = " + frame.pointables.length);
     // Tip position is in millimeters from the Leap origin
-    for (var i = 0; i < frame.pointables.length; i++) {
+    console.log("Frame rotation angle = " + frame.rotationAngle(frame));
+    /*for (var i = 0; i < frame.pointables.length; i++) {
         console.log("Finger position = " + frame.pointables[i].toString());
     }
     if (frame.gestures && frame.gestures.length == 1) {
@@ -124,7 +125,7 @@ controller.on('frame', function(frame) {
         console.log("Gesture position = " + frame.gestures[0].position);
     }
 });
-controller.connect();
-*/
+controller.connect();*/
+
 
 
