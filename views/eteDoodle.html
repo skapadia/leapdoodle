@@ -37,6 +37,7 @@ var hoverStartX = 0;
 var hoverStartY = 0;
 var lastElementHoverClicked = null;
 var lastElementHoverTime = 0;
+var lastSwipeMs = 0;
 
 var enteredCanvas = false;
 var fingerBrushDown = false;
@@ -551,10 +552,14 @@ $(document).ready(function () {
                 }
                 else if (posData.gesture.type === 'swipe') {
                     if (posData.gesture.state === 'stop') {
-                        //console.log("Swipe detected direction = " + posData.gesture.direction);
-                        if (posData.gesture.direction[0] <= -0.9) {
-                            console.log("Should upload");
-                            $('#saveImageButton').trigger('click');
+                        var now = Date.now();
+                        if ((now - lastSwipeMs) > 10000) {
+                            //console.log("Swipe detected direction = " + posData.gesture.direction);
+                            if (posData.gesture.direction[0] <= -0.9) {
+                                console.log("Should upload");
+                                $('#saveImageButton').trigger('click');
+                                lastSwipeMs = now;
+                            }
                         }
                     }
                 }
