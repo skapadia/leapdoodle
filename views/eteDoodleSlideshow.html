@@ -3,16 +3,16 @@
 <head>
     <title>ETE Doodle Slideshow</title>
 
-    <link rel="stylesheet" href="../public/css/slideshow.css"/>
+    <link rel="stylesheet" href="/css/slideshow.css"/>
 
-    <script type="text/javascript" src="../public/js/jquery-1.9.1.js"></script>
-    <script type="text/javascript" src="../public/js/jquery.rs.slideshow.min.js"></script>
+    <script type="text/javascript" src="/js/jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="/js/jquery.rs.slideshow.min.js"></script>
 
     <script type="text/javascript">
 
         var IMAGE_POLLING_INTERVAL_MS = 2 * 1000;
 
-        var imageSlidesArray = [{url:'../public/images/ChariotLogo.jpg'}];
+        var imageSlidesArray = [{url:'/images/ChariotLogo.jpg'}];
         var currSnapshotCount = 0;
         var currImageCounter = 0;
 
@@ -26,7 +26,7 @@
         var checkForNewImages = function () {
             console.log("Checking for new images...");
 
-            $.ajax({dataType:'json',url:'http://localhost:3000/eteDoodle/snapshots/count', success:snapshotCountCallback})
+            $.ajax({dataType:'json',url:'/eteDoodle/snapshots/count', success:snapshotCountCallback})
                     .fail(function () { console.log("Failed to retrieve latest image index!")});
 
             setTimeout(checkForNewImages, IMAGE_POLLING_INTERVAL_MS);
@@ -36,7 +36,7 @@
             console.log("Checking whether to add image to slideshow: currSnapshotCount = " + currSnapshotCount);
             console.log("Curr image counter = " + currImageCounter);
             if (currSnapshotCount > currImageCounter) {
-                var slides = [{url: 'http://localhost:3000/eteDoodle/snapshots/' + currImageCounter}];
+                var slides = [{url: '/eteDoodle/snapshots/' + currImageCounter}];
                 $slideshowDiv.rsfSlideshow('addSlides', slides);
                 currImageCounter += 1;
             }

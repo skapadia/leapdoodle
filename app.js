@@ -65,7 +65,11 @@ app.configure(function() {
 });
 
 app.get('/eteDoodle', function (req, res) {
-   res.render('eteDoodle.html');
+    res.render('eteDoodle.html');
+});
+
+app.get('/eteDoodle/slideshow', function (req, res) {
+    res.render('eteDoodleSlideshow.html');
 });
 
 app.get('/eteDoodle/snapshots/count', function (req, res) {
