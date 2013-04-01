@@ -428,7 +428,7 @@ $(document).ready(function () {
                     if (fingerBrushCurrentlyDown && posData.leapPointableTipVelocity[2] <= 100) {
                         var index = Math.min(Math.floor(Math.abs(posData.leapZ) / 25), 4);
                         var lineWidth = zDepthLineWidthArray[index];
-                        $posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
+                        //$posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
                         paintBrushStroke(posData.screenX, posData.screenY, lineWidth);
                     }
                     else {
