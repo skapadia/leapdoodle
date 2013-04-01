@@ -41,16 +41,23 @@ var lastElementHoverTime = 0;
 var enteredCanvas = false;
 var fingerBrushDown = false;
 
+var leapController = null;
+var leapControllerConnected = false;
+var shouldProcessLeapData = false;
+
 // Z intervals: 0,25,50,75,100
 var zDepthLineWidthArray = [1,3,5,7,9];
 
-var uploadCanvasImage = function (canvas) {
+var clearCanvas = function (canvas) {
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+};
+
+var uploadCanvasImage = function (canvas, callback) {
     // Base64 encoded string of the image data
     var imageDataBase64 = canvas.toDataURL('image/png');
-
-    // TODO: This call will be moved to when the user clicks "Save" after doodling on image
     $.post('/eteDoodle/saveSnapshot', {imageData: imageDataBase64}, function (data) {
         console.log("Image uploaded successfully.");
+        callback();
     });
 };
 
@@ -111,9 +118,12 @@ var leapFrameHandler = function (frame, debugModeOn) {
     var xPosFromOriginMm, yPosFromOriginMm, zPosFromOriginMm = 0;
     var tipVelocity = null;
     var detectedGesture = null;
-    if (frame.gestures && frame.gestures.length == 1) {
+    // Only detect gestures when user is not drawing
+    if (!fingerBrushDown && (frame.gestures && frame.gestures.length == 1)) {
         detectedGesture = frame.gestures[0];
+        console.log("Gesture detected = " + detectedGesture.type);
         if (detectedGesture.type === 'screenTap') {
+            console.log("Screen tap detected!");
             screenTapDetected = true;
             xPosFromOriginMm = detectedGesture.position[0];
             yPosFromOriginMm = detectedGesture.position[1];
@@ -122,8 +132,7 @@ var leapFrameHandler = function (frame, debugModeOn) {
             screenY = leapToScreenY(yPosFromOriginMm);
         }
     }
-    else if (frame.pointables.length >= 1) {
-        frame.pointables[0].direction.angleT
+    if (frame.pointables.length >= 1) {
         var trackedPointable = null;
         if (!lastPointableId) {
             trackedPointable = frame.pointables[0];
@@ -281,36 +290,6 @@ $(document).ready(function () {
         }
     };
 
-    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-
-    $(document).delegate('.paintColor', 'click', function (event) {
-        var currentSelectedColorButton = $(this).parent().parent().find('.selectedColor');
-        $(currentSelectedColorButton).removeClass('selectedColor');
-        $(this).addClass('selectedColor');
-
-        if ($(this).hasClass('backgroundGrayscale')) {
-            grayscaleBrushMode = true;
-            console.log("Clicked grayscale mode!");
-        }
-        else {
-            grayscaleBrushMode = false;
-            currentColor = $(this).css('background-color');
-            $leapCursor.css('background-color', currentColor);
-
-            console.log("Clicked color = " + currentColor);
-        }
-    });
-
-    $('#resetImageButton').bind('click', function (event) {
-        if (origSnapshotImageData) {
-            canvasCtx.putImageData(origSnapshotImageData, 0, 0);
-        }
-    });
-
-    $('#saveImageButton').bind('click', function (event) {
-        uploadCanvasImage(canvas);
-    });
-
     $canvas.mouseenter(function (event) {
         console.log("Entered canvas");
     });
@@ -345,213 +324,280 @@ $(document).ready(function () {
         }
     });
 
-    $('#photoSnapshotDialog').dialog({
-        resizable: false,
-        modal: true,
-        minWidth: 1050,
-        minHeight: 794,
-        buttons: {
-            "takeSnapshotButton": {
-                text: "Take photo",
-                id: "takeSnapshotButton",
-                click: function () {
-                    origSnapshotImageData = takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
-                    $(this).dialog('close');
-                    var controller = new Leap.Controller({enableGestures: true});
-                    controller.on('animationFrame', function (frame) {
-                        var posData = leapFrameHandler(frame, debugModeOn);
+    $(document).delegate('.paintColor', 'click', function (event) {
+        var currentSelectedColorButton = $(this).parent().parent().find('.selectedColor');
+        $(currentSelectedColorButton).removeClass('selectedColor');
+        $(this).addClass('selectedColor');
 
-                        if (posData.screenX !== lastScreenX) {
-                            $leapCursor.css('left', posData.screenX);
-                        }
-                        if (posData.screenY !== lastScreenY) {
-                            $leapCursor.css('top', posData.screenY);
-                        }
+        if ($(this).hasClass('backgroundGrayscale')) {
+            grayscaleBrushMode = true;
+            console.log("Clicked grayscale mode!");
+        }
+        else {
+            grayscaleBrushMode = false;
+            currentColor = $(this).css('background-color');
+            $leapCursor.css('background-color', currentColor);
 
-                        // Are we in the canvas?
-                        if (posData.screenX >= canvasOffsetLeft && posData.screenX <= canvasOffsetRight
-                            && posData.screenY >= canvasOffsetTop && posData.screenY <= canvasOffsetBottom) {
-                            //$posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
-                            var fingerBrushCurrentlyDown = posData.leapZ < 0;
-                            if (!enteredCanvas) {
-                                enteredCanvas = true;
-                            }
-                            if (!fingerBrushDown) {
-                                // Entering drawing surface first time
-                                if (fingerBrushCurrentlyDown) {
-                                    console.log("Entered drawing surface");
-                                    fingerBrushDown = true;
-                                    paintBrushDown(posData.screenX, posData.screenY);
-                                }
-                            }
-                            else {
-                                // Was on drawing surface previously
-                                // If still on drawing surface, continue drawing
-                                if (posData.leapPointableTipVelocity[2] > 100) {
-                                    console.log("Z Velocity Threshold Passed");
-                                }
-                                if (fingerBrushCurrentlyDown && posData.leapPointableTipVelocity[2] <= 100) {
-                                    var index = Math.min(Math.floor(Math.abs(posData.leapZ) / 25), 4);
-                                    var lineWidth = zDepthLineWidthArray[index];
-                                    $posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
-                                    paintBrushStroke(posData.screenX, posData.screenY, lineWidth);
+            console.log("Clicked color = " + currentColor);
+        }
+    });
+
+    $('#resetImageButton').bind('click', function (event) {
+        if (origSnapshotImageData) {
+            canvasCtx.putImageData(origSnapshotImageData, 0, 0);
+        }
+    });
+
+    $('#saveImageButton').bind('click', function (event) {
+        uploadCanvasImage(canvas, function () {
+            shouldProcessLeapData = false;
+            //controller.disconnect();
+            //leapControllerConnected = false;
+            openSnapshotDialog();
+        });
+    });
+
+    var activateDoodling = function () {
+        clearCanvas(canvas);
+        origSnapshotImageData = takeSnapshotFromVideo(video, webCamStream, canvas, canvasCtx);
+        $(this).dialog('close');
+        if (!leapControllerConnected) {
+            controller.connect();
+        }
+        leapControllerConnected = true;
+        shouldProcessLeapData = true;
+    };
+
+    var openSnapshotDialog = function () {
+        $('#photoSnapshotDialog').dialog({
+            resizable: false,
+            modal: true,
+            minWidth: 1050,
+            minHeight: 794,
+            buttons: {
+                "takeSnapshotButton": {
+                    text: "Take photo",
+                    id: "takeSnapshotButton",
+                    click: activateDoodling
+                }
+            }
+        });
+
+        $('#takeSnapshotButton').attr('disabled', 'disabled');
+        startWebcamVideo(video, function (stream) {
+            webCamStream = stream;
+            $('#takeSnapshotButton').removeAttr('disabled');
+        });
+    };
+
+    controller = new Leap.Controller({enableGestures: true});
+    controller.on('animationFrame', function (frame) {
+        if (shouldProcessLeapData) {
+            var posData = leapFrameHandler(frame, debugModeOn);
+
+            if (posData.screenX !== lastScreenX) {
+                $leapCursor.css('left', posData.screenX);
+            }
+            if (posData.screenY !== lastScreenY) {
+                $leapCursor.css('top', posData.screenY);
+            }
+
+            // Are we in the canvas?
+            if (posData.screenX >= canvasOffsetLeft && posData.screenX <= canvasOffsetRight
+                    && posData.screenY >= canvasOffsetTop && posData.screenY <= canvasOffsetBottom) {
+                //$posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
+                var fingerBrushCurrentlyDown = posData.leapZ < 0;
+                if (!enteredCanvas) {
+                    enteredCanvas = true;
+                }
+                if (!fingerBrushDown) {
+                    // Entering drawing surface first time
+                    if (fingerBrushCurrentlyDown) {
+                        console.log("Entered drawing surface");
+                        fingerBrushDown = true;
+                        paintBrushDown(posData.screenX, posData.screenY);
+                    }
+                }
+                else {
+                    // Was on drawing surface previously
+                    // If still on drawing surface, continue drawing
+                    if (posData.leapPointableTipVelocity[2] > 100) {
+                        console.log("Z Velocity Threshold Passed");
+                    }
+                    if (fingerBrushCurrentlyDown && posData.leapPointableTipVelocity[2] <= 100) {
+                        var index = Math.min(Math.floor(Math.abs(posData.leapZ) / 25), 4);
+                        var lineWidth = zDepthLineWidthArray[index];
+                        $posDataArea.html("<li>Z Pos = " + posData.leapZ + ", X = " + posData.screenX + ", Y = " + posData.screenY + ", Fingers = " + posData.leapPointableCount + "</li>");
+                        paintBrushStroke(posData.screenX, posData.screenY, lineWidth);
+                    }
+                    else {
+                        // Picked up paint brush
+                        console.log("Left drawing surface");
+                        paintBrushUp();
+                        fingerBrushDown = false;
+                    }
+                }
+            }
+            else {
+                if (enteredCanvas) {
+                    // Leaving canvas
+                    enteredCanvas = false;
+
+                    if (fingerBrushDown) {
+                        console.log("Leaving canvas while drawing - leave drawing surface");
+                        paintBrushUp();
+                        fingerBrushDown = false;
+                    }
+                }
+
+                // Hover click processing
+                if (posData.leapPointableCount > 0) {
+                    if (hoverStartMs > 0) {
+                        if (Math.abs(hoverStartX - posData.screenX) <= 10 ||
+                                Math.abs(hoverStartY - posData.screenY) <= 10) {
+                            var hoverTime = Date.now();
+                            if ((hoverTime - hoverStartMs) >= 1000) {
+                                // We've hovered over a point for a while, get the element
+                                // and see if its leapHoverClickable
+
+                                console.log("Hover click detected!");
+
+                                $(leapCursor).hide();
+                                var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
+                                $(leapCursor).show();
+
+                                if (lastElementHoverClicked == hoverElement && ((hoverTime - lastElementHoverTime) <= 1000)) {
+                                    // Do not process hover click events on the same element within 1 second
                                 }
                                 else {
-                                    // Picked up paint brush
-                                    console.log("Left drawing surface");
-                                    paintBrushUp();
-                                    fingerBrushDown = false;
+                                    console.log("Hover Start Pos = " + '(' + hoverStartX + ', ' + hoverStartY + ')');
+                                    console.log("Hover Element Clicked = " + $(hoverElement).attr('id'));
+
+                                    $(hoverElement).trigger('click');
+                                    lastElementHoverClicked = hoverElement;
+                                    lastElementHoverTime = hoverTime;
                                 }
+
+                                hoverStartMs = 0;
+                                hoverStartX = 0;
+                                hoverStartY = 0;
                             }
                         }
                         else {
-                            if (enteredCanvas) {
-                                // Leaving canvas
-                                enteredCanvas = false;
-
-                                if (fingerBrushDown) {
-                                    console.log("Leaving canvas while drawing - leave drawing surface");
-                                    paintBrushUp();
-                                    fingerBrushDown = false;
-                                }
-                            }
-
-                            // Hover click processing
-                            if (posData.leapPointableCount > 0) {
-                                if (hoverStartMs > 0) {
-                                    if (Math.abs(hoverStartX - posData.screenX) <= 10 ||
-                                            Math.abs(hoverStartY - posData.screenY) <= 10) {
-                                        var hoverTime = Date.now();
-                                        if ((hoverTime - hoverStartMs) >= 1000) {
-                                            // We've hovered over a point for a while, get the element
-                                            // and see if its leapHoverClickable
-
-                                            console.log("Hover click detected!");
-
-                                            $(leapCursor).hide();
-                                            var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
-                                            $(leapCursor).show();
-
-                                            if (lastElementHoverClicked == hoverElement && ((hoverTime - lastElementHoverTime) <= 1000)) {
-                                                // Do not process hover click events on the same element within 1 second
-                                            }
-                                            else {
-                                                console.log("Hover Start Pos = " + '(' + hoverStartX + ', ' + hoverStartY + ')');
-                                                console.log("Hover Element Clicked = " + $(hoverElement).attr('id'));
-
-                                                $(hoverElement).trigger('click');
-                                                lastElementHoverClicked = hoverElement;
-                                                lastElementHoverTime = hoverTime;
-                                            }
-
-                                            hoverStartMs = 0;
-                                            hoverStartX = 0;
-                                            hoverStartY = 0;
-                                        }
-                                    }
-                                    else {
-                                        hoverStartMs = 0;
-                                        hoverStartX = 0;
-                                        hoverStartY = 0;
-                                    }
-                                }
-                                else {
-                                    if (Math.abs(lastScreenX - posData.screenX) <= 10 ||
-                                            Math.abs(lastScreenY - posData.screenY) <= 10) {
-                                        // Only start hover detecting if the velocity in X and Y is under 10mm/s
-                                        if (posData.leapPointableTipVelocity
-                                                && Math.abs(posData.leapPointableTipVelocity[0]) <= 10
-                                                && Math.abs(posData.leapPointableTipVelocity[1]) <= 10) {
-                                            hoverStartMs = Date.now();
-                                            hoverStartX = posData.screenX;
-                                            hoverStartY = posData.screenY;
-
-                                            $(leapCursor).hide();
-                                            var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
-                                            $(leapCursor).show();
-
-
-                                            if (!$(hoverElement).hasClass('leapHoverClickable')
-                                                    || (lastElementHoverClicked == hoverElement && ((hoverStartMs - lastElementHoverTime) <= 5000))) {
-                                                // Do not process hover click events on the same element within 5 seconds
-                                                hoverStartMs = 0;
-                                                hoverStartX = 0;
-                                                hoverStartY = 0;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Gesture processing
-                            if (posData.gesture) {
-                                if (posData.gesture.type === 'circle') {
-                                    if (posData.gesture.state === 'stop' && posData.gesture.radius >= 25 && (1.9 <= posData.gesture.progress && posData.gesture.progress <= 2.5)) {
-                                        if (posData.gesture.center[2] > 0) {
-                                            $('#resetImageButton').trigger('click');
-                                        }
-                                    }
-                                }
-                                else if (posData.gesture.type === 'swipe') {
-                                    if (posData.gesture.state === 'stop') {
-                                        //console.log("Swipe detected direction = " + posData.gesture.direction);
-                                        if (posData.gesture.direction[0] <= -0.9) {
-                                          console.log("Should upload");
-                                            $('#saveImageButton').trigger('click');
-                                        }
-                                    }
-                                }
-                            }
-                            /*
-                            // Gesture processing
-                            if (posData[8] === true) {
-                                // Screen tap detected - only accept it if previous tap is at least a second apart
-                                var screenTapTime = Date.now();
-                                if ((screenTapTime - lastScreenTapTime) >= 1000) {
-                                    console.log("Screen tap detected!!");
-                                    $(leapCursor).hide();
-                                    var element = document.elementFromPoint(posData.screenX, posData.screenY);
-                                    console.log("Element = " + $(element).attr('id'));
-                                    if (element) {
-                                        $(element).trigger('click');
-                                        $(element).css('color', 'red');
-                                    }
-                                    $(leapCursor).show();
-                                    lastScreenTapTime = screenTapTime;
-                                }
-                            }
-                            */
+                            hoverStartMs = 0;
+                            hoverStartX = 0;
+                            hoverStartY = 0;
                         }
+                    }
+                    else {
+                        if (Math.abs(lastScreenX - posData.screenX) <= 10 ||
+                                Math.abs(lastScreenY - posData.screenY) <= 10) {
+                            // Only start hover detecting if the velocity in X and Y is under 10mm/s
+                            if (posData.leapPointableTipVelocity
+                                    && Math.abs(posData.leapPointableTipVelocity[0]) <= 10
+                                    && Math.abs(posData.leapPointableTipVelocity[1]) <= 10) {
+                                hoverStartMs = Date.now();
+                                hoverStartX = posData.screenX;
+                                hoverStartY = posData.screenY;
 
-                        // Update last screen position
-                        lastScreenX = posData.screenX;
-                        lastScreenY = posData.screenY;
+                                $(leapCursor).hide();
+                                var hoverElement = document.elementFromPoint(hoverStartX, hoverStartY);
+                                $(leapCursor).show();
 
-                        if (debugModeOn) {
-                            $currPos.html('(' + posData.screenX + ', ' + posData.screenY + ')' + '&lt;- (' + posData.leapX + ', ' + posData.leapY + ')');
-                            if (posData.minMaxChanged === true) {
-                                $posDataArea.html('<li>Max X:' + posData.leapMaxX + '</li><li>Min X:' + posData.leapMinX + '</li>');
-                                $posDataArea.append('<li>Max Y:' + posData.leapMaxY + '</li><li>Min Y:' + posData.leapMinY + '</li>');
+
+                                if (!$(hoverElement).hasClass('leapHoverClickable')
+                                        || (lastElementHoverClicked == hoverElement && ((hoverStartMs - lastElementHoverTime) <= 5000))) {
+                                    // Do not process hover click events on the same element within 5 seconds
+                                    hoverStartMs = 0;
+                                    hoverStartX = 0;
+                                    hoverStartY = 0;
+                                }
                             }
                         }
-                    });
-                    controller.connect();
+                    }
+                }
+                /*
+                 // Gesture processing
+                 if (posData[8] === true) {
+                 // Screen tap detected - only accept it if previous tap is at least a second apart
+                 var screenTapTime = Date.now();
+                 if ((screenTapTime - lastScreenTapTime) >= 1000) {
+                 console.log("Screen tap detected!!");
+                 $(leapCursor).hide();
+                 var element = document.elementFromPoint(posData.screenX, posData.screenY);
+                 console.log("Element = " + $(element).attr('id'));
+                 if (element) {
+                 $(element).trigger('click');
+                 $(element).css('color', 'red');
+                 }
+                 $(leapCursor).show();
+                 lastScreenTapTime = screenTapTime;
+                 }
+                 }
+                 */
+            }
+
+            // Gesture processing
+            if (!fingerBrushDown && posData.gesture) {
+                console.log("In Gesture processing");
+                if (posData.gesture.type === 'circle') {
+                    console.log("Processing circle gesture");
+                    if (posData.gesture.state === 'stop' && posData.gesture.radius >= 13 && (1.9 <= posData.gesture.progress && posData.gesture.progress <= 2.5)) {
+                        console.log("Valid circle");
+                        if (posData.gesture.center[2] > 0) {
+                            $('#resetImageButton').trigger('click');
+                        }
+                    }
+                }
+                else if (posData.gesture.type === 'swipe') {
+                    if (posData.gesture.state === 'stop') {
+                        //console.log("Swipe detected direction = " + posData.gesture.direction);
+                        if (posData.gesture.direction[0] <= -0.9) {
+                            console.log("Should upload");
+                            $('#saveImageButton').trigger('click');
+                        }
+                    }
+                }
+            }
+
+            // Update last screen position
+            lastScreenX = posData.screenX;
+            lastScreenY = posData.screenY;
+
+            if (debugModeOn) {
+                $currPos.html('(' + posData.screenX + ', ' + posData.screenY + ')' + '&lt;- (' + posData.leapX + ', ' + posData.leapY + ')');
+                if (posData.minMaxChanged === true) {
+                    $posDataArea.html('<li>Max X:' + posData.leapMaxX + '</li><li>Min X:' + posData.leapMinX + '</li>');
+                    $posDataArea.append('<li>Max Y:' + posData.leapMaxY + '</li><li>Min Y:' + posData.leapMinY + '</li>');
                 }
             }
         }
     });
 
-    $('#takeSnapshotButton').attr('disabled', 'disabled');
-    startWebcamVideo(video, function (stream) {
-        webCamStream = stream;
-        $('#takeSnapshotButton').removeAttr('disabled');
-    });
+    openSnapshotDialog();
 });
 </script>
 </head>
 <body>
 <div id="doodleApp" style="width: 100%; height: 100%">
+    <div style="float:left;width:1050px;">
     <canvas id="doodleCanvas" width="1024" height="768" style="border: solid 2px;"></canvas>
+    <img src="images/ChariotLogo.jpg" style="width:900px;height:300px;">
+    </div>
+    <div style="float:left;width:400px;">
+        <h1>Instructions</h1>
+        <ul>
+            <li>Move your finger over the Leap Motion controller and the on-screen cursor will follow.</li>
+            <li><p>To select a color, move your finger and hover over the color for at least 1 second. The color will be highlighted and the cursor's color will change as well.</p></li>
+            <li><p>To draw on the photo, your fingertip should <em>cross the middle of the Leap Motion controller</em>: see below</p>
+            <p><img src="images/leap-motion-draw-example.JPG"/></p></li>
+            <li><p>The line will get thicker the further you go "in" (past the controller: to simulate applying pressure to a brush for example)</p></li>
+            <li><p>To stop drawing, quickly pull your finger back (to simulate lifting a brush from the canvas)</p></li>
+            <li><p>This app will recognize 2 gestures while you are NOT drawing:</p></li>
+            <li><p>To undo all changes (reset the image): Make two, full counterclockwise circles with your finger (at least 1/2 inch in radius).</p></li>
+            <li><p>To upload the image: swipe your hand horizontally, towards the left or right.</p></li>
+        </ul>
+    </div>
     <div id="toolPane" class="toolPane">
         <ul class="paintColorList" style="float:left;">
             <li id="blackPen" class="paintColor backgroundBlack leapHoverClickable selectedColor"></li>
@@ -585,7 +631,7 @@ $(document).ready(function () {
 </div>
 <div id="leapCursor" style="top:0;left:0;position:absolute;" class="leapCursor">
 </div>
-<div id="photoSnapshotDialog" title="Smile!" style="width:1050px; height:794px;display:none;">
+<div id="photoSnapshotDialog" title="Smile and click Take Photo!" style="width:1050px; height:794px;display:none;">
     <video id="videoCapture" width="1024" height="768" autoplay></video>
 </div>
 
