@@ -12,4 +12,4 @@ LeapDoodle works with the Leap Motion controller and Chrome web browser (version
 
 Photos uploaded to the server will be saved at in the user home directory under snapshotImages.
 
-**NOTE:** This is just a demo that needs a lot of work.
+**NOTE:** This is just a demo that needs a lot of work and refactoring!.
